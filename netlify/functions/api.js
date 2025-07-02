@@ -24,7 +24,7 @@ const connectToDatabase = async () => {
   }
 };
 
-// 用户模型
+// 用户模型 - 匹配本地server.js
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
@@ -32,43 +32,20 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// 应用模型
+// 应用模型 - 完全匹配本地server.js
 const appSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  title: { type: String, required: true },
   description: { type: String },
   url: { type: String, required: true },
-  previewUrl: { type: String },
-  screenshot: { type: String },
-  category: { type: String, default: '其他' },
-  tags: [String],
-  isPublic: { type: Boolean, default: true },
-  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  authorName: { type: String, required: true },
-  likes: { type: Number, default: 0 },
-  likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  favorites: { type: Number, default: 0 },
-  favoritedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  views: { type: Number, default: 0 },
+  screenshot: { type: String }, // 截图文件路径
+  isPublished: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-  webpageUpdatedAt: { type: Date },
-  lastChecked: { type: Date },
-  contentHash: { type: String },
-  status: { type: String, enum: ['active', 'checking', 'error'], default: 'active' }
-});
-
-// 评论模型
-const commentSchema = new mongoose.Schema({
-  appId: { type: mongoose.Schema.Types.ObjectId, ref: 'App', required: true },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  userName: { type: String, required: true },
-  content: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now }
 });
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 const App = mongoose.models.App || mongoose.model('App', appSchema);
-const Comment = mongoose.models.Comment || mongoose.model('Comment', commentSchema);
 
 // OpenAI配置
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
@@ -79,46 +56,54 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 const authenticateToken = (authHeader) => {
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) {
-    throw new Error('需要访问令牌');
+    throw new Error('访问令牌缺失');
   }
   
   try {
-    const user = jwt.verify(token, 'your-secret-key');
+    const user = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     return user;
   } catch (err) {
-    throw new Error('无效的令牌');
+    throw new Error('无效的访问令牌');
   }
 };
 
 // 路由处理器
 const handlers = {
   // 健康检查
-  'GET /api/health': async () => ({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    openai: process.env.OPENAI_API_KEY ? 'configured' : 'not configured'
+  'GET /api/test': async () => ({
+    message: 'API服务器运行正常',
+    timestamp: new Date().toISOString()
   }),
 
   // 用户注册
   'POST /api/register': async (body) => {
     const { username, email, password } = body;
 
+    // 检查用户是否已存在
     const existingUser = await User.findOne({ 
       $or: [{ email }, { username }] 
     });
     
     if (existingUser) {
-      throw new Error(existingUser.email === email ? '邮箱已被使用' : '用户名已被使用');
+      throw new Error('用户名或邮箱已存在');
     }
 
+    // 加密密码
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, email, password: hashedPassword });
+
+    // 创建新用户
+    const user = new User({
+      username,
+      email,
+      password: hashedPassword
+    });
+
     await user.save();
 
+    // 生成JWT令牌
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      'your-secret-key',
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
@@ -135,24 +120,24 @@ const handlers = {
 
   // 用户登录
   'POST /api/login': async (body) => {
-    const { username, password } = body;
+    const { email, password } = body;
 
-    const user = await User.findOne({ 
-      $or: [{ username }, { email: username }] 
-    });
-    
+    // 查找用户
+    const user = await User.findOne({ email });
     if (!user) {
-      throw new Error('用户名或密码错误');
+      throw new Error('用户不存在');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      throw new Error('用户名或密码错误');
+    // 验证密码
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      throw new Error('密码错误');
     }
 
+    // 生成JWT令牌
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      'your-secret-key',
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
@@ -167,258 +152,101 @@ const handlers = {
     };
   },
 
-  // 发布应用
+  // 发布应用 - 完全匹配本地逻辑
   'POST /api/apps': async (body, query, user) => {
-    if (!user) throw new Error('需要登录');
+    if (!user) throw new Error('需要认证');
     
-    const { name, description, url, category, tags } = body;
+    const { title, description, url } = body;
 
-    const existingApp = await App.findOne({ url });
-    if (existingApp) {
-      throw new Error('该网址已经被发布过了');
+    // 验证URL格式
+    const urlPattern = /^https?:\/\/.+/;
+    if (!urlPattern.test(url)) {
+      throw new Error('请输入有效的URL');
     }
 
-    // 简化版本，暂时不包含截图和AI生成描述
+    // 创建应用记录 - 使用与本地相同的字段
     const app = new App({
-      name: name || '未命名应用',
-      description: description || '暂无描述',
+      userId: user.userId,
+      title,
+      description,
       url,
-      category: category || '其他',
-      tags: tags || [],
-      author: user.userId,
-      authorName: user.username,
-      isPublic: true
+      isPublished: false // 默认未发布，与本地一致
     });
 
     await app.save();
 
+    // 注意：Netlify Functions不支持puppeteer截图，暂时跳过
+    console.log(`应用创建成功: ${app._id}, 截图功能在云端暂不可用`);
+
     return {
-      message: '应用发布成功',
+      message: '应用创建成功',
       app: {
         id: app._id,
-        name: app.name,
+        title: app.title,
         description: app.description,
         url: app.url,
-        category: app.category,
-        tags: app.tags,
-        authorName: app.authorName,
-        likes: app.likes,
-        favorites: app.favorites,
-        views: app.views,
-        createdAt: app.createdAt,
-        updatedAt: app.updatedAt
+        isPublished: app.isPublished
       }
     };
   },
 
   // 获取用户的应用列表
   'GET /api/apps': async (query, params, user) => {
-    if (!user) throw new Error('需要登录');
+    if (!user) throw new Error('需要认证');
     
-    const apps = await App.find({ author: user.userId })
-      .sort({ createdAt: -1 })
-      .select('-contentHash');
-
+    const apps = await App.find({ userId: user.userId })
+      .sort({ createdAt: -1 });
+    
     return apps;
   },
 
-  // 获取公开应用列表（原 /api/apps/published）
-  'GET /api/apps/published': async (query) => {
-    const { page = 1, limit = 12, category, search, sort = 'latest', userId } = query;
-    const skip = (page - 1) * limit;
-
-    let queryObj = { isPublic: true };
+  // 发布/取消发布应用
+  'PATCH /api/apps/:id/publish': async (body, query, user, params) => {
+    if (!user) throw new Error('需要认证');
     
-    if (category && category !== '全部' && category !== 'trending' && category !== 'daily') {
-      queryObj.category = category;
+    const { id } = params;
+    const { isPublished } = body;
+
+    const app = await App.findOneAndUpdate(
+      { _id: id, userId: user.userId },
+      { isPublished, updatedAt: Date.now() },
+      { new: true }
+    );
+
+    if (!app) {
+      throw new Error('应用不存在');
     }
+
+    return {
+      message: isPublished ? '应用已发布' : '应用已取消发布',
+      app
+    };
+  },
+
+  // 获取所有已发布的应用
+  'GET /api/apps/published': async () => {
+    console.log('收到获取已发布应用的请求');
+    const apps = await App.find({ isPublished: true })
+      .populate('userId', 'username')
+      .sort({ updatedAt: -1 });
     
-    if (search) {
-      queryObj.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
-      ];
-    }
-
-    let sortQuery = {};
-    if (category === 'daily') {
-      // 每日推荐：随机排序
-      const apps = await App.aggregate([
-        { $match: queryObj },
-        { $sample: { size: parseInt(limit) } }
-      ]);
-      return apps;
-    } else {
-      // 点赞排行等其他排序
-      switch (sort) {
-        case 'popular':
-          sortQuery = { likes: -1, views: -1 };
-          break;
-        case 'views':
-          sortQuery = { views: -1 };
-          break;
-        case 'updated':
-          sortQuery = { webpageUpdatedAt: -1, updatedAt: -1 };
-          break;
-        default:
-          sortQuery = { createdAt: -1 };
-      }
-    }
-
-    const [apps, total] = await Promise.all([
-      App.find(queryObj)
-        .sort(sortQuery)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .select('-contentHash'),
-      App.countDocuments(queryObj)
-    ]);
-
-    // 如果提供了userId，添加用户状态
-    if (userId) {
-      const appsWithStatus = apps.map(app => ({
-        ...app.toObject(),
-        isLikedByCurrentUser: app.likedBy.includes(userId),
-        isFavoriteByCurrentUser: app.favoritedBy.includes(userId)
-      }));
-      return appsWithStatus;
-    }
-
+    console.log('找到的应用数量:', apps.length);
     return apps;
   },
 
-  // 点赞应用
-  'POST /api/apps/:id/like': async (body, query, user, params) => {
-    if (!user) throw new Error('需要登录');
+  // 删除应用
+  'DELETE /api/apps/:id': async (body, query, user, params) => {
+    if (!user) throw new Error('需要认证');
     
-    const appId = params.id;
-    const app = await App.findById(appId);
+    const { id } = params;
     
-    if (!app) {
-      throw new Error('应用未找到');
-    }
-
-    const userId = user.userId;
-    const hasLiked = app.likedBy.includes(userId);
-
-    if (hasLiked) {
-      app.likedBy.pull(userId);
-      app.likes = Math.max(0, app.likes - 1);
-    } else {
-      app.likedBy.push(userId);
-      app.likes += 1;
-    }
-
-    await app.save();
-
-    return {
-      likes: app.likes,
-      isLiked: !hasLiked
-    };
-  },
-
-  // 收藏应用
-  'POST /api/apps/:id/favorite': async (body, query, user, params) => {
-    if (!user) throw new Error('需要登录');
-    
-    const appId = params.id;
-    const app = await App.findById(appId);
+    const app = await App.findOneAndDelete({ _id: id, userId: user.userId });
     
     if (!app) {
-      throw new Error('应用未找到');
+      throw new Error('应用不存在');
     }
 
-    const userId = user.userId;
-    const hasFavorited = app.favoritedBy.includes(userId);
-
-    if (hasFavorited) {
-      app.favoritedBy.pull(userId);
-      app.favorites = Math.max(0, app.favorites - 1);
-    } else {
-      app.favoritedBy.push(userId);
-      app.favorites += 1;
-    }
-
-    await app.save();
-
-    return {
-      favorites: app.favorites,
-      hasFavorited: !hasFavorited
-    };
-  },
-
-  // 获取用户收藏的应用
-  'GET /api/favorites': async (query, params, user) => {
-    if (!user) throw new Error('需要登录');
-    
-    const apps = await App.find({ 
-      favoritedBy: user.userId,
-      isPublic: true
-    }).select('-contentHash');
-
-    return apps;
-  },
-
-  // 添加评论
-  'POST /api/apps/:id/comments': async (body, query, user, params) => {
-    if (!user) throw new Error('需要登录');
-    
-    const { content } = body;
-    const appId = params.id;
-
-    if (!content || content.trim().length === 0) {
-      throw new Error('评论内容不能为空');
-    }
-
-    const app = await App.findById(appId);
-    if (!app) {
-      throw new Error('应用未找到');
-    }
-
-    const comment = new Comment({
-      userId: user.userId,
-      appId,
-      userName: user.username,
-      content: content.trim()
-    });
-
-    await comment.save();
-
-    return {
-      message: '评论添加成功',
-      comment
-    };
-  },
-
-  // 获取应用评论
-  'GET /api/apps/:id/comments': async (query, params) => {
-    const appId = params.id;
-    const page = parseInt(query.page) || 1;
-    const limit = parseInt(query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    const app = await App.findById(appId);
-    if (!app) {
-      throw new Error('应用未找到');
-    }
-
-    const comments = await Comment.find({ appId })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Comment.countDocuments({ appId });
-
-    return {
-      comments,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    };
+    return { message: '应用删除成功' };
   },
 
   // AI生成描述
@@ -478,65 +306,6 @@ const handlers = {
       console.error('AI生成描述错误:', error);
       throw new Error('AI生成描述失败，请稍后重试');
     }
-  },
-
-  // 删除应用
-  'DELETE /api/apps/:id': async (body, query, user, params) => {
-    if (!user) throw new Error('需要登录');
-    
-    const appId = params.id;
-    const app = await App.findById(appId);
-    
-    if (!app) {
-      throw new Error('应用未找到');
-    }
-
-    // 检查是否是应用的作者
-    if (app.author.toString() !== user.userId) {
-      throw new Error('只有应用作者可以删除应用');
-    }
-
-    // 删除相关评论
-    await Comment.deleteMany({ appId });
-
-    // 删除应用
-    await App.findByIdAndDelete(appId);
-
-    return {
-      message: '应用删除成功'
-    };
-  },
-
-  // 更新应用发布状态
-  'PATCH /api/apps/:id/publish': async (body, query, user, params) => {
-    if (!user) throw new Error('需要登录');
-    
-    const appId = params.id;
-    const { isPublished } = body;
-    
-    const app = await App.findById(appId);
-    
-    if (!app) {
-      throw new Error('应用未找到');
-    }
-
-    // 检查是否是应用的作者
-    if (app.author.toString() !== user.userId) {
-      throw new Error('只有应用作者可以修改发布状态');
-    }
-
-    app.isPublic = isPublished;
-    app.updatedAt = new Date();
-    await app.save();
-
-    return {
-      message: isPublished ? '应用已公开' : '应用已设为私有',
-      app: {
-        id: app._id,
-        isPublic: app.isPublic,
-        updatedAt: app.updatedAt
-      }
-    };
   }
 };
 
@@ -546,7 +315,7 @@ exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
     'Content-Type': 'application/json'
   };
 
@@ -601,7 +370,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 404,
         headers,
-        body: JSON.stringify({ error: `路由未找到: ${routeKey}` })
+        body: JSON.stringify({ message: `路由未找到: ${routeKey}` })
       };
     }
 
@@ -623,13 +392,9 @@ exports.handler = async (event, context) => {
     const needsAuth = [
       'POST /api/apps',
       'GET /api/apps',
-      'POST /api/apps/:id/like',
-      'POST /api/apps/:id/favorite',
-      'GET /api/favorites',
-      'POST /api/apps/:id/comments',
-      'POST /api/generate-description',
+      'PATCH /api/apps/:id/publish',
       'DELETE /api/apps/:id',
-      'PATCH /api/apps/:id/publish'
+      'POST /api/generate-description'
     ];
     
     if (needsAuth.includes(routeKey) || needsAuth.some(route => {
@@ -642,7 +407,7 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 401,
           headers,
-          body: JSON.stringify({ error: err.message })
+          body: JSON.stringify({ message: err.message })
         };
       }
     }
@@ -663,7 +428,7 @@ exports.handler = async (event, context) => {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
-        error: error.message || '服务器内部错误' 
+        message: error.message || '服务器错误' 
       })
     };
   }
