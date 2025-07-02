@@ -1,20 +1,26 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import axios from 'axios'
-import './index.css'
 import App from './App.jsx'
+import './index.css'
+import axios from 'axios'
 
 // 配置axios默认baseURL
-axios.defaults.baseURL = 'http://localhost:3000'
+const isDevelopment = import.meta.env.DEV
+const baseURL = isDevelopment 
+  ? 'http://localhost:3000' 
+  : window.location.origin
 
-// 配置后端URL，用于图片等静态资源
-window.BACKEND_URL = 'http://localhost:3000'
+axios.defaults.baseURL = baseURL
+window.BACKEND_URL = baseURL
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
+console.log('Environment:', isDevelopment ? 'development' : 'production')
+console.log('API Base URL:', baseURL)
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </StrictMode>,
+  </React.StrictMode>,
 )
