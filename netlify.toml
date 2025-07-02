@@ -11,6 +11,12 @@
   to = "/.netlify/functions/api"
   status = 200
 
+# SPA 路由重定向：所有非API请求都重定向到index.html，让React Router处理
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
 [[headers]]
   for = "/.netlify/functions/*"
   [headers.values]
