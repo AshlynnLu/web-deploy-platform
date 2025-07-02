@@ -36,10 +36,18 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
         
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: client/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('client/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+            
       - name: Install dependencies
         run: |
           cd client
-          npm ci
+          npm install
           
       - name: Build
         run: |
