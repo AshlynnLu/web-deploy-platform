@@ -251,7 +251,7 @@ const handlers = {
 
   // AI生成描述
   'POST /api/generate-description': async (body, query, user) => {
-    if (!user) throw new Error('需要登录');
+    if (!user) throw new Error('需要认证');
     
     const { title, url } = body;
 
