@@ -57,9 +57,10 @@ function Dashboard() {
   }
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <h1>我的应用</h1>
+    <div className="home-container">
+      <div className="hero-section">
+        <h1 className="hero-title">我的应用</h1>
+        <p className="hero-subtitle">管理您发布的应用</p>
         <button 
           onClick={() => navigate('/publish')} 
           className="publish-button"
@@ -88,7 +89,7 @@ function Dashboard() {
             <div key={app._id} className="app-card">
               <div className="app-screenshot">
                 {app.screenshot ? (
-                  <img src={`${window.BACKEND_URL}/${app.screenshot}`} alt={app.title} />
+                  <img src={`${window.location.origin}/${app.screenshot}`} alt={app.title} />
                 ) : (
                   <div className="screenshot-placeholder">
                     <span>📸</span>
