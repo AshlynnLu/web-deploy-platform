@@ -40,6 +40,7 @@ const appSchema = new mongoose.Schema({
   url: { type: String, required: true },
   screenshot: { type: String }, // 截图文件路径
   isPublished: { type: Boolean, default: false },
+  likes: { type: Number, default: 0 }, // 点赞数量
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -51,6 +52,9 @@ const favoriteSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// 确保用户不能重复收藏同一个应用
+favoriteSchema.index({ userId: 1, appId: 1 }, { unique: true });
+
 // 点赞模型
 const likeSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -58,17 +62,16 @@ const likeSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// 确保用户不能重复点赞同一个应用
+likeSchema.index({ userId: 1, appId: 1 }, { unique: true });
+
 // 评论模型
 const commentSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   appId: { type: mongoose.Schema.Types.ObjectId, ref: 'App', required: true },
-  content: { type: String, required: true, maxlength: 500 },
+  content: { type: String, required: true, maxLength: 500 },
   createdAt: { type: Date, default: Date.now }
 });
-
-// 确保用户不能重复收藏/点赞同一个应用
-favoriteSchema.index({ userId: 1, appId: 1 }, { unique: true });
-likeSchema.index({ userId: 1, appId: 1 }, { unique: true });
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 const App = mongoose.models.App || mongoose.model('App', appSchema);
@@ -254,45 +257,56 @@ const handlers = {
 
   // 获取所有已发布的应用
   'GET /api/apps/published': async (body, query) => {
-    console.log('收到获取已发布应用的请求');
-    const { userId } = query;
+    console.log('收到获取已发布应用的请求', query);
+    
+    const { category = 'trending', userId } = query;
+    
+    // 根据分类确定排序方式
+    let sortOptions = {};
+    if (category === 'trending') {
+      sortOptions = { likes: -1, createdAt: -1 }; // 按点赞数降序，然后按创建时间降序
+    } else if (category === 'daily') {
+      sortOptions = { createdAt: -1 }; // 按创建时间降序
+    } else {
+      sortOptions = { updatedAt: -1 }; // 默认按更新时间降序
+    }
     
     const apps = await App.find({ isPublished: true })
       .populate('userId', 'username')
-      .sort({ updatedAt: -1 });
+      .sort(sortOptions);
     
-    // 为每个应用添加点赞数、评论数和用户状态
-    const appsWithStats = await Promise.all(apps.map(async (app) => {
-      const appObj = app.toObject();
+    // 如果有用户ID，添加用户的点赞和收藏状态
+    if (userId) {
+      const appsWithUserStatus = await Promise.all(apps.map(async (app) => {
+        const [isLiked, isFavorited, commentsCount] = await Promise.all([
+          Like.exists({ userId, appId: app._id }),
+          Favorite.exists({ userId, appId: app._id }),
+          Comment.countDocuments({ appId: app._id })
+        ]);
+        
+        return {
+          ...app.toObject(),
+          isLikedByCurrentUser: !!isLiked,
+          isFavoriteByCurrentUser: !!isFavorited,
+          commentsCount
+        };
+      }));
       
-      // 获取点赞数
-      const likesCount = await Like.countDocuments({ appId: app._id });
-      
-      // 获取评论数
+      console.log('找到的应用数量:', appsWithUserStatus.length);
+      return appsWithUserStatus;
+    }
+    
+    // 如果没有用户ID，只添加评论数量
+    const appsWithCounts = await Promise.all(apps.map(async (app) => {
       const commentsCount = await Comment.countDocuments({ appId: app._id });
-      
-      // 如果用户已登录，检查用户的点赞和收藏状态
-      let isLikedByCurrentUser = false;
-      let isFavoriteByCurrentUser = false;
-      
-      if (userId) {
-        const userLike = await Like.findOne({ userId, appId: app._id });
-        const userFavorite = await Favorite.findOne({ userId, appId: app._id });
-        isLikedByCurrentUser = !!userLike;
-        isFavoriteByCurrentUser = !!userFavorite;
-      }
-      
       return {
-        ...appObj,
-        likes: likesCount,
-        commentsCount,
-        isLikedByCurrentUser,
-        isFavoriteByCurrentUser
+        ...app.toObject(),
+        commentsCount
       };
     }));
     
-    console.log('找到的应用数量:', apps.length);
-    return appsWithStats;
+    console.log('找到的应用数量:', appsWithCounts.length);
+    return appsWithCounts;
   },
 
   // 删除应用
@@ -447,21 +461,27 @@ const handlers = {
     if (existingLike) {
       // 如果已点赞，则取消点赞
       await Like.findByIdAndDelete(existingLike._id);
-      const likesCount = await Like.countDocuments({ appId });
+      // 减少应用的点赞数
+      await App.findByIdAndUpdate(appId, { $inc: { likes: -1 } });
+      
+      const updatedApp = await App.findById(appId);
       return {
         message: '已取消点赞',
         isLiked: false,
-        likes: likesCount
+        likes: updatedApp.likes
       };
     } else {
       // 如果未点赞，则添加点赞
       const like = new Like({ userId, appId });
       await like.save();
-      const likesCount = await Like.countDocuments({ appId });
+      // 增加应用的点赞数
+      await App.findByIdAndUpdate(appId, { $inc: { likes: 1 } });
+      
+      const updatedApp = await App.findById(appId);
       return {
         message: '点赞成功',
         isLiked: true,
-        likes: likesCount
+        likes: updatedApp.likes
       };
     }
   },
@@ -480,7 +500,10 @@ const handlers = {
       .populate('userId', 'username')
       .sort({ createdAt: -1 });
 
-    return { comments };
+    return {
+      comments,
+      total: comments.length
+    };
   },
 
   // 添加评论
@@ -514,12 +537,12 @@ const handlers = {
 
     await comment.save();
 
-    // 返回带有用户信息的评论
+    // 返回带用户信息的评论
     const populatedComment = await Comment.findById(comment._id)
       .populate('userId', 'username');
 
     return {
-      message: '评论添加成功',
+      message: '评论成功',
       comment: populatedComment
     };
   }
