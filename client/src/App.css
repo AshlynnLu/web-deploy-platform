@@ -19,8 +19,6 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  max-width: 1400px;
-  margin: 0 auto;
   width: 100%;
 }
 
@@ -37,8 +35,6 @@ body {
   top: 0;
   z-index: 1000;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
   box-sizing: border-box;
   min-height: 70px; /* 固定最小高度 */
   box-shadow: 0 2px 10px rgba(230, 126, 34, 0.1);
@@ -135,14 +131,10 @@ body {
   flex: 1;
   padding: 2rem;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 /* Dashboard样式 */
 .dashboard-container {
-  max-width: 1400px;
-  margin: 0 auto;
   width: 100%;
 }
 
@@ -265,8 +257,6 @@ body {
 
 /* 首页样式 */
 .home-container {
-  max-width: 1400px;
-  margin: 0 auto;
   width: 100%;
 }
 
@@ -298,9 +288,6 @@ body {
   gap: 1.5rem;
   margin-top: 2rem;
   padding: 0 1rem;
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
   width: 100%;
 }
 
@@ -427,13 +414,12 @@ body {
 /* 认证页面样式 */
 .auth-container {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   min-height: calc(100vh - 80px);
   padding: 2rem;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding-left: 4rem; /* 左侧留更多空间 */
 }
 
 .auth-card {
@@ -443,7 +429,7 @@ body {
   border-radius: 20px;
   padding: 2.5rem;
   width: 100%;
-  max-width: 400px;
+  max-width: 500px; /* 增加宽度 */
   box-shadow: 0 20px 40px rgba(230, 126, 34, 0.2);
 }
 
@@ -643,9 +629,16 @@ body {
 /* 大屏幕 (1200px以上) */
 @media (min-width: 1200px) {
   .navbar {
-    max-width: 1400px;
-    margin: 0 auto;
     min-height: 70px;
+  }
+  
+  /* 大屏幕的认证页面优化 */
+  .auth-container {
+    padding-left: 6rem; /* 大屏幕增加左边距 */
+  }
+  
+  .auth-card {
+    max-width: 550px; /* 大屏幕增加表单宽度 */
   }
   
   .nav-brand {
@@ -669,14 +662,11 @@ body {
   }
   
   .dashboard-container {
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
   }
   
   .apps-grid {
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    max-width: 1400px;
-    margin: 0 auto;
     padding: 0 2rem;
     gap: 2rem;
   }
@@ -699,18 +689,24 @@ body {
   }
   
   .home-container {
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
   }
 }
 
 /* 中等屏幕 (768px - 1199px) */
 @media (max-width: 1199px) and (min-width: 769px) {
   .navbar {
-    max-width: 1000px;
-    margin: 0 auto;
     padding: 1rem 1.5rem;
     min-height: 70px;
+  }
+  
+  /* 中等屏幕的认证页面样式 */
+  .auth-container {
+    padding-left: 2rem; /* 中等屏幕减少左边距 */
+  }
+  
+  .auth-card {
+    max-width: 450px; /* 中等屏幕稍微减小宽度 */
   }
   
   .nav-brand {
@@ -734,14 +730,11 @@ body {
   }
   
   .dashboard-container {
-    max-width: 1000px;
-    margin: 0 auto;
+    width: 100%;
   }
   
   .apps-grid {
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    max-width: 1000px;
-    margin: 0 auto;
     padding: 0 1.5rem;
     gap: 1.5rem;
   }
@@ -756,8 +749,6 @@ body {
   
   .main-content {
     padding: 1.5rem;
-    max-width: 1000px;
-    margin: 0 auto;
   }
   
   .publish-app-container {
@@ -767,16 +758,14 @@ body {
   }
   
   .home-container {
-    max-width: 1000px;
-    margin: 0 auto;
+    width: 100%;
   }
 }
 
 /* 平板设备 (768px以下) */
 @media (max-width: 768px) {
   .navbar {
-    max-width: 100%;
-    margin: 0 auto;
+    width: 100%;
     padding: 1rem;
     flex-direction: column;
     gap: 1rem;
@@ -827,9 +816,9 @@ body {
   .apps-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1rem;
-    margin: 1rem auto;
+    margin: 1rem 0;
     padding: 0;
-    max-width: 100%;
+    width: 100%;
   }
   
   .app-card {
@@ -1844,6 +1833,15 @@ body {
   .app-card {
     max-width: none;
   }
+  
+  /* 超宽屏的认证页面优化 */
+  .auth-container {
+    padding-left: 8rem; /* 超宽屏增加更多左边距 */
+  }
+  
+  .auth-card {
+    max-width: 600px; /* 超宽屏进一步增加表单宽度 */
+  }
 }
 
 /* 4K屏幕优化 (2560px+) */
@@ -2280,7 +2278,9 @@ body {
 /* 优化表单在不同设备上的显示 */
 @media (max-width: 768px) {
   .auth-container {
+    justify-content: center; /* 移动端恢复居中 */
     padding: 0.5rem;
+    padding-left: 0.5rem; /* 移动端重置左边距 */
     align-items: flex-start;
     padding-top: 2rem;
   }
@@ -2301,6 +2301,9 @@ body {
 
 @media (max-width: 480px) {
   .auth-container {
+    justify-content: center; /* 小屏幕也保持居中 */
+    padding: 1rem;
+    padding-left: 1rem; /* 重置左边距 */
     padding-top: 1rem;
   }
   
