@@ -16,7 +16,7 @@
 ### 后端
 - **Node.js** + **Express** - 服务器框架
 - **MongoDB** - 数据库
-- **Puppeteer** - 网页截图
+- **ScreenshotAPI** - 网页截图服务
 - **JWT** - 用户认证
 - **bcryptjs** - 密码加密
 
@@ -45,8 +45,28 @@ npm install
 cd ..
 ```
 
-### 3. 配置环境
-确保MongoDB连接字符串已正确配置在 `server.js` 中。
+### 3. 配置环境变量
+创建 `.env` 文件并配置以下环境变量：
+
+```bash
+# 数据库配置
+MONGODB_URI=mongodb://127.0.0.1:27017/web-deploy-platform
+
+# JWT密钥
+JWT_SECRET=your-secret-key
+
+# OpenAI API密钥（用于AI生成描述）
+OPENAI_API_KEY=your-openai-api-key
+
+# ScreenshotAPI 密钥（用于网站截图）
+# 请访问 https://app.screenshotapi.net/ 注册并获取API key
+SCREENSHOT_API_KEY=your-screenshot-api-key
+
+# Netlify部署URL（可选）
+NETLIFY_URL=https://your-app.netlify.app
+```
+
+**重要：** 需要在 https://app.screenshotapi.net/ 注册并获取API key，然后设置 `SCREENSHOT_API_KEY` 环境变量。
 
 ### 4. 启动服务
 ```bash
@@ -58,7 +78,17 @@ cd client
 npm run dev
 ```
 
-### 5. 访问应用
+### 5. 测试截图功能（可选）
+在启动应用前，可以测试screenshotAPI是否配置正确：
+
+```bash
+# 测试截图API
+node test-screenshot.js
+```
+
+如果测试成功，会显示 "🎉 screenshotAPI集成测试通过！"
+
+### 6. 访问应用
 打开浏览器访问 `http://localhost:5173`
 
 ## 📖 使用指南
@@ -123,9 +153,11 @@ web_deploy/
 ## 🐛 故障排除
 
 ### 截图失败
+- 确保已正确设置 `SCREENSHOT_API_KEY` 环境变量
 - 确保目标网站可以正常访问
 - 检查网络连接
-- 查看服务器日志
+- 查看ScreenshotAPI服务状态
+- 确认API key有效且有足够的配额
 
 ### 登录状态丢失
 - 检查浏览器localStorage是否被清除
@@ -136,6 +168,12 @@ web_deploy/
 - 确认网络连接正常
 
 ## 📝 更新日志
+
+### v1.1.0
+- 🔧 **重要更新**: 截图功能从Puppeteer迁移到ScreenshotAPI
+- ✨ 改善了云部署环境的兼容性
+- 📸 支持通过环境变量配置截图API密钥
+- 🛠️ 添加了截图功能测试脚本
 
 ### v1.0.0
 - 初始版本发布

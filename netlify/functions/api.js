@@ -4,15 +4,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const OpenAI = require('openai');
-const chromium = require('chrome-aws-lambda');
-let puppeteer;
-try {
-  // 在 Netlify(或 AWS Lambda) 环境使用 puppeteer-core + chrome-aws-lambda
-  puppeteer = require('puppeteer-core');
-} catch (err) {
-  // 本地开发时回退到完整 puppeteer
-  puppeteer = require('puppeteer');
-}
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
 
 // 数据库连接
 let isConnected = false;
@@ -92,6 +86,104 @@ const Comment = mongoose.models.Comment || mongoose.model('Comment', commentSche
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 }) : null;
+
+// screenshotAPI截图生成函数
+const generateScreenshot = async (targetUrl, appId) => {
+  const screenshotApiKey = process.env.SCREENSHOT_API_KEY;
+  
+  if (!screenshotApiKey) {
+    console.error('SCREENSHOT_API_KEY环境变量未设置');
+    return null;
+  }
+
+  try {
+    // 构建screenshotAPI请求URL
+    const apiUrl = `https://shot.screenshotapi.net/screenshot`;
+    const params = new URLSearchParams({
+      token: screenshotApiKey,
+      url: targetUrl,
+      output: 'image',
+      file_type: 'png',
+      width: '1200',
+      height: '800',
+      full_page: 'false',
+      delay: '1000'
+    });
+
+    const requestUrl = `${apiUrl}?${params}`;
+    console.log('正在请求截图:', requestUrl.replace(screenshotApiKey, 'API_KEY_HIDDEN'));
+
+    return new Promise((resolve, reject) => {
+      const req = https.get(requestUrl, (res) => {
+        // 处理重定向
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          console.log('收到重定向，跟随至:', res.headers.location);
+          const redirectReq = https.get(res.headers.location, (redirectRes) => {
+            if (redirectRes.statusCode === 200) {
+              const chunks = [];
+              redirectRes.on('data', chunk => chunks.push(chunk));
+              redirectRes.on('end', () => {
+                const imageBuffer = Buffer.concat(chunks);
+                saveScreenshot(imageBuffer, appId).then(resolve).catch(reject);
+              });
+            } else {
+              reject(new Error(`重定向请求失败: ${redirectRes.statusCode}`));
+            }
+          });
+          redirectReq.on('error', reject);
+          return;
+        }
+
+        if (res.statusCode === 200) {
+          const chunks = [];
+          res.on('data', chunk => chunks.push(chunk));
+          res.on('end', () => {
+            const imageBuffer = Buffer.concat(chunks);
+            saveScreenshot(imageBuffer, appId).then(resolve).catch(reject);
+          });
+        } else {
+          let errorData = '';
+          res.on('data', chunk => errorData += chunk);
+          res.on('end', () => {
+            reject(new Error(`截图API返回错误: ${res.statusCode} - ${errorData}`));
+          });
+        }
+      });
+
+      req.on('error', (error) => {
+        console.error('截图请求失败:', error);
+        reject(error);
+      });
+
+      req.setTimeout(30000, () => {
+        req.destroy();
+        reject(new Error('截图请求超时'));
+      });
+    });
+
+  } catch (error) {
+    console.error('生成截图时出错:', error);
+    return null;
+  }
+};
+
+// 保存截图到持久化存储（使用缓存URL方式）
+const saveScreenshot = async (imageBuffer, appId) => {
+  try {
+    // 在云环境中，我们直接使用截图API的缓存机制
+    // 不需要本地存储，直接返回一个标识符
+    const fileName = `screenshot-${appId}-${Date.now()}.png`;
+    
+    console.log(`截图已处理，应用ID: ${appId}`);
+    
+    // 返回截图标识符，实际图片通过API重新获取
+    return fileName;
+    
+  } catch (error) {
+    console.error('处理截图失败:', error);
+    throw error;
+  }
+};
 
 // JWT认证中间件
 const authenticateToken = (authHeader) => {
@@ -205,49 +297,31 @@ const handlers = {
       throw new Error('请输入有效的URL');
     }
 
-    // -------- 新增: 生成网页截图 --------
-    let screenshotData = '';
-    try {
-      // 根据运行环境选择对应的浏览器启动方式
-      const browser = await (async () => {
-        if (process.env.LAMBDA_TASK_ROOT) {
-          // Netlify / AWS Lambda
-          return await puppeteer.launch({
-            args: chromium.args,
-            executablePath: await chromium.executablePath,
-            headless: chromium.headless,
-          });
-        }
-        // 本地开发
-        return await puppeteer.launch({ headless: true });
-      })();
-
-      const page = await browser.newPage();
-      await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 2 });
-      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-      const buffer = await page.screenshot({ type: 'png', fullPage: true });
-      await browser.close();
-
-      // 保存为 dataURL，直接持久化到 MongoDB，避免文件存储问题
-      screenshotData = `data:image/png;base64,${buffer.toString('base64')}`;
-    } catch (err) {
-      console.error('截图失败:', err);
-    }
-    // -------- 新增结束 --------
-
     // 创建应用记录 - 使用与本地相同的字段
     const app = new App({
       userId: user.userId,
       title,
       description,
       url,
-      screenshot: screenshotData,
       isPublished: false // 默认未发布，与本地一致
     });
 
     await app.save();
 
-    console.log(`应用创建成功: ${app._id}, 截图已${screenshotData ? '生成' : '跳过'}`);
+    // 使用screenshotAPI生成截图
+    try {
+      const screenshotPath = await generateScreenshot(app.url, app._id);
+      if (screenshotPath) {
+        app.screenshot = screenshotPath;
+        await app.save();
+        console.log(`应用创建成功并生成截图: ${app._id}`);
+      } else {
+        console.log(`应用创建成功但截图生成失败: ${app._id}`);
+      }
+    } catch (error) {
+      console.error('截图生成错误:', error);
+      // 即使截图失败，应用也要创建成功
+    }
 
     return {
       message: '应用创建成功',
@@ -256,8 +330,8 @@ const handlers = {
         title: app.title,
         description: app.description,
         url: app.url,
-        isPublished: app.isPublished,
         screenshot: app.screenshot,
+        isPublished: app.isPublished
       }
     };
   },
@@ -633,20 +707,31 @@ const handlers = {
       throw new Error('该应用暂无截图');
     }
 
-    // 如果存储的是 dataURL，则直接以二进制形式返回给浏览器
-    if (app.screenshot.startsWith('data:image')) {
-      const base64Data = app.screenshot.split(',')[1];
-      return {
-        binary: true,
-        headers: { 'Content-Type': 'image/png' },
-        body: base64Data,
-      };
+    // 重新从screenshotAPI获取图片
+    const screenshotApiKey = process.env.SCREENSHOT_API_KEY;
+    if (!screenshotApiKey) {
+      throw new Error('截图服务未配置');
     }
 
-    // 否则保持原有的重定向逻辑
+    // 构建screenshotAPI的URL（使用缓存）
+    const params_screenshot = new URLSearchParams({
+      token: screenshotApiKey,
+      url: app.url,
+      output: 'image',
+      file_type: 'png',
+      width: '1200',
+      height: '800',
+      full_page: 'false',
+      delay: '1000',
+      ttl: '3600' // 1小时缓存
+    });
+
+    const screenshotUrl = `https://shot.screenshotapi.net/screenshot?${params_screenshot}`;
+
+    // 返回重定向到screenshotAPI
     return {
       redirect: true,
-      location: `${process.env.NETLIFY_URL || 'https://bee-alpha-store.netlify.app'}/${app.screenshot}`,
+      location: screenshotUrl
     };
   }
 };
@@ -771,19 +856,6 @@ exports.handler = async (event, context) => {
           'Location': result.location
         },
         body: ''
-      };
-    }
-
-    // 在主 handler 中，添加对二进制响应的处理
-    if (result && result.binary) {
-      return {
-        statusCode: 200,
-        headers: {
-          ...headers,
-          ...result.headers,
-        },
-        isBase64Encoded: true,
-        body: result.body,
       };
     }
 
