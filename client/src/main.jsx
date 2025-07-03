@@ -8,7 +8,7 @@ import axios from 'axios'
 // 配置axios默认baseURL
 const isDevelopment = import.meta.env.DEV
 const baseURL = isDevelopment 
-  ? 'http://localhost:3000' 
+  ? 'http://localhost:5000' 
   : window.location.origin
 
 axios.defaults.baseURL = baseURL

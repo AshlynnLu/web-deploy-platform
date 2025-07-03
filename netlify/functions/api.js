@@ -51,12 +51,30 @@ const favoriteSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// 确保用户不能重复收藏同一个应用
+// 点赞模型
+const likeSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  appId: { type: mongoose.Schema.Types.ObjectId, ref: 'App', required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+// 评论模型
+const commentSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  appId: { type: mongoose.Schema.Types.ObjectId, ref: 'App', required: true },
+  content: { type: String, required: true, maxlength: 500 },
+  createdAt: { type: Date, default: Date.now }
+});
+
+// 确保用户不能重复收藏或点赞同一个应用
 favoriteSchema.index({ userId: 1, appId: 1 }, { unique: true });
+likeSchema.index({ userId: 1, appId: 1 }, { unique: true });
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 const App = mongoose.models.App || mongoose.model('App', appSchema);
 const Favorite = mongoose.models.Favorite || mongoose.model('Favorite', favoriteSchema);
+const Like = mongoose.models.Like || mongoose.model('Like', likeSchema);
+const Comment = mongoose.models.Comment || mongoose.model('Comment', commentSchema);
 
 // OpenAI配置
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
@@ -235,14 +253,59 @@ const handlers = {
   },
 
   // 获取所有已发布的应用
-  'GET /api/apps/published': async () => {
+  'GET /api/apps/published': async (query, params, user) => {
     console.log('收到获取已发布应用的请求');
-    const apps = await App.find({ isPublished: true })
+    const { category = 'trending', userId } = query;
+    
+    // 获取所有已发布的应用
+    let apps = await App.find({ isPublished: true })
       .populate('userId', 'username')
       .sort({ updatedAt: -1 });
     
-    console.log('找到的应用数量:', apps.length);
-    return apps;
+    // 为每个应用添加统计信息和用户交互状态
+    const appsWithStats = await Promise.all(
+      apps.map(async (app) => {
+        const appObj = app.toObject();
+        
+        // 计算点赞数和评论数
+        const [likesCount, commentsCount] = await Promise.all([
+          Like.countDocuments({ appId: app._id }),
+          Comment.countDocuments({ appId: app._id })
+        ]);
+        
+        appObj.likes = likesCount;
+        appObj.commentsCount = commentsCount;
+        
+        // 如果用户已登录，检查用户的交互状态
+        if (userId) {
+          const [userLike, userFavorite] = await Promise.all([
+            Like.findOne({ userId, appId: app._id }),
+            Favorite.findOne({ userId, appId: app._id })
+          ]);
+          
+          appObj.isLikedByCurrentUser = !!userLike;
+          appObj.isFavoriteByCurrentUser = !!userFavorite;
+        } else {
+          appObj.isLikedByCurrentUser = false;
+          appObj.isFavoriteByCurrentUser = false;
+        }
+        
+        return appObj;
+      })
+    );
+    
+    // 根据分类排序
+    let sortedApps = appsWithStats;
+    if (category === 'trending') {
+      // 按点赞数排序（热门）
+      sortedApps = appsWithStats.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else if (category === 'daily') {
+      // 按创建时间排序（最新）
+      sortedApps = appsWithStats.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+    
+    console.log('找到的应用数量:', sortedApps.length);
+    return sortedApps;
   },
 
   // 删除应用
@@ -256,6 +319,13 @@ const handlers = {
     if (!app) {
       throw new Error('应用不存在');
     }
+
+    // 删除相关的点赞、评论和收藏记录
+    await Promise.all([
+      Like.deleteMany({ appId: id }),
+      Comment.deleteMany({ appId: id }),
+      Favorite.deleteMany({ appId: id })
+    ]);
 
     return { message: '应用删除成功' };
   },
@@ -285,7 +355,7 @@ const handlers = {
 2. 突出产品的核心功能和价值
 3. 语言简洁明了，吸引用户
 4. 避免过度夸张的词汇
-5. 使用中文回复
+5. 使用名称所用的语言回复，如果名称是中文，则使用中文回复，如果名称是英文，则使用英文回复
 
 请直接返回描述内容，不需要额外的格式或标题。`;
 
@@ -376,6 +446,110 @@ const handlers = {
       }));
 
     return validFavorites;
+  },
+
+  // 点赞/取消点赞应用
+  'POST /api/apps/:id/like': async (body, query, user, params) => {
+    if (!user) throw new Error('需要认证');
+    
+    const { id: appId } = params;
+    const userId = user.userId;
+
+    // 检查应用是否存在
+    const app = await App.findById(appId);
+    if (!app) {
+      throw new Error('应用不存在');
+    }
+
+    // 检查是否已经点赞
+    const existingLike = await Like.findOne({ userId, appId });
+
+    if (existingLike) {
+      // 如果已点赞，则取消点赞
+      await Like.findByIdAndDelete(existingLike._id);
+      
+      // 获取最新的点赞数
+      const likesCount = await Like.countDocuments({ appId });
+      
+      return {
+        message: '已取消点赞',
+        isLiked: false,
+        likes: likesCount
+      };
+    } else {
+      // 如果未点赞，则添加点赞
+      const like = new Like({ userId, appId });
+      await like.save();
+      
+      // 获取最新的点赞数
+      const likesCount = await Like.countDocuments({ appId });
+      
+      return {
+        message: '点赞成功',
+        isLiked: true,
+        likes: likesCount
+      };
+    }
+  },
+
+  // 获取应用评论列表
+  'GET /api/apps/:id/comments': async (query, params, user) => {
+    const { id: appId } = params;
+
+    // 检查应用是否存在
+    const app = await App.findById(appId);
+    if (!app) {
+      throw new Error('应用不存在');
+    }
+
+    // 获取评论列表
+    const comments = await Comment.find({ appId })
+      .populate('userId', 'username')
+      .sort({ createdAt: -1 });
+
+    return {
+      comments: comments
+    };
+  },
+
+  // 添加评论
+  'POST /api/apps/:id/comments': async (body, query, user, params) => {
+    if (!user) throw new Error('需要认证');
+    
+    const { id: appId } = params;
+    const { content } = body;
+    const userId = user.userId;
+
+    if (!content || !content.trim()) {
+      throw new Error('评论内容不能为空');
+    }
+
+    if (content.length > 500) {
+      throw new Error('评论内容不能超过500字符');
+    }
+
+    // 检查应用是否存在
+    const app = await App.findById(appId);
+    if (!app) {
+      throw new Error('应用不存在');
+    }
+
+    // 创建评论
+    const comment = new Comment({
+      userId,
+      appId,
+      content: content.trim()
+    });
+
+    await comment.save();
+
+    // 填充用户信息
+    await comment.populate('userId', 'username');
+
+    return {
+      message: '评论添加成功',
+      comment: comment
+    };
   }
 };
 
@@ -466,7 +640,9 @@ exports.handler = async (event, context) => {
       'DELETE /api/apps/:id',
       'POST /api/generate-description',
       'POST /api/apps/:id/favorite',
-      'GET /api/favorites'
+      'GET /api/favorites',
+      'POST /api/apps/:id/like',
+      'POST /api/apps/:id/comments'
     ];
     
     if (needsAuth.includes(routeKey) || needsAuth.some(route => {

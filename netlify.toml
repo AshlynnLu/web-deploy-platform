@@ -1,6 +1,6 @@
 [build]
   publish = "client/dist"
-  command = "cd client && npm install && npm run build"
+  command = "cd client && npm install && npm run build && cp -r ../public/uploads ./dist/ || true"
   functions = "netlify/functions"
 
 [build.environment]
@@ -11,7 +11,9 @@
   to = "/.netlify/functions/api"
   status = 200
 
-# SPA 路由重定向：所有非API请求都重定向到index.html，让React Router处理
+# 静态文件服务：uploads 目录中的文件直接提供，不经过重定向
+
+# SPA 路由重定向：所有非API和非uploads请求都重定向到index.html，让React Router处理
 [[redirects]]
   from = "/*"
   to = "/index.html"
