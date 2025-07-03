@@ -161,6 +161,38 @@ function HomePage() {
     }
   };
 
+  // 删除评论
+  const handleDeleteComment = async (commentId) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('请先登录');
+      return;
+    }
+
+    if (!window.confirm('确定要删除这条评论吗？')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`/api/apps/${selectedApp._id}/comments/${commentId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // 从评论列表中移除已删除的评论
+      setComments(comments.filter(comment => comment._id !== commentId));
+      
+      // 更新评论数量
+      setApps(apps.map(app => 
+        app._id === selectedApp._id 
+          ? { ...app, commentsCount: Math.max((app.commentsCount || 1) - 1, 0) }
+          : app
+      ));
+    } catch (err) {
+      console.error('删除评论失败:', err);
+      alert(err.response?.data?.message || '删除评论失败');
+    }
+  };
+
   useEffect(() => {
     fetchApps(activeTab);
   }, [activeTab]);
@@ -280,7 +312,7 @@ function HomePage() {
             <div key={app._id} className="app-card">
               <div className="app-screenshot">
                 {app.screenshot ? (
-                  <img src={`${window.BACKEND_URL}/${app.screenshot}`} alt={app.title} />
+                  <img src={`/api/apps/${app._id}/screenshot`} alt={app.title} />
                 ) : (
                   <div className="screenshot-placeholder">
                     <span>📸</span>
@@ -403,9 +435,20 @@ function HomePage() {
                 <div key={comment._id} className="comment-item">
                   <div className="comment-header">
                     <span className="comment-author">{comment.userId?.username || '匿名用户'}</span>
-                    <span className="comment-time">
-                      {new Date(comment.createdAt).toLocaleString()}
-                    </span>
+                    <div className="comment-meta">
+                      <span className="comment-time">
+                        {new Date(comment.createdAt).toLocaleString()}
+                      </span>
+                      {currentUserId && comment.userId?._id === currentUserId && (
+                        <button 
+                          onClick={() => handleDeleteComment(comment._id)}
+                          className="delete-comment-btn"
+                          title="删除评论"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="comment-content">{comment.content}</div>
                 </div>

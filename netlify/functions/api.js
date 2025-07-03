@@ -545,6 +545,59 @@ const handlers = {
       message: '评论成功',
       comment: populatedComment
     };
+  },
+
+  // 删除评论
+  'DELETE /api/apps/:appId/comments/:commentId': async (body, query, user, params) => {
+    if (!user) throw new Error('需要认证');
+    
+    const { appId, commentId } = params;
+    const userId = user.userId;
+
+    // 检查应用是否存在
+    const app = await App.findById(appId);
+    if (!app) {
+      throw new Error('应用不存在');
+    }
+
+    // 查找评论并检查权限
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      throw new Error('评论不存在');
+    }
+
+    // 只允许评论作者删除自己的评论
+    if (comment.userId.toString() !== userId) {
+      throw new Error('您只能删除自己的评论');
+    }
+
+    // 删除评论
+    await Comment.findByIdAndDelete(commentId);
+
+    return {
+      message: '评论删除成功'
+    };
+  },
+
+  // 获取应用截图
+  'GET /api/apps/:id/screenshot': async (body, query, user, params) => {
+    const { id: appId } = params;
+
+    // 检查应用是否存在
+    const app = await App.findById(appId);
+    if (!app) {
+      throw new Error('应用不存在');
+    }
+
+    if (!app.screenshot) {
+      throw new Error('该应用暂无截图');
+    }
+
+    // 返回重定向到实际图片URL
+    return {
+      redirect: true,
+      location: `${process.env.NETLIFY_URL || 'https://bee-alpha-store.netlify.app'}/${app.screenshot}`
+    };
   }
 };
 
@@ -637,7 +690,8 @@ exports.handler = async (event, context) => {
       'POST /api/apps/:id/favorite',
       'GET /api/favorites',
       'POST /api/apps/:id/like',
-      'POST /api/apps/:id/comments'
+      'POST /api/apps/:id/comments',
+      'DELETE /api/apps/:appId/comments/:commentId'
     ];
     
     if (needsAuth.includes(routeKey) || needsAuth.some(route => {
@@ -657,6 +711,18 @@ exports.handler = async (event, context) => {
 
     // 调用处理器
     const result = await handler(body, query, user, params);
+
+    // 处理重定向响应
+    if (result && result.redirect) {
+      return {
+        statusCode: 302,
+        headers: {
+          ...headers,
+          'Location': result.location
+        },
+        body: ''
+      };
+    }
 
     return {
       statusCode: 200,

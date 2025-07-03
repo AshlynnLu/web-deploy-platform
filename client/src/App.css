@@ -1741,9 +1741,32 @@ body {
   color: #E67E22;
 }
 
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .comment-time {
   color: #6c757d;
   font-size: 0.8rem;
+}
+
+.delete-comment-btn {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  opacity: 0.6;
+}
+
+.delete-comment-btn:hover {
+  opacity: 1;
+  background: rgba(255, 107, 107, 0.1);
+  transform: scale(1.1);
 }
 
 .comment-content {
@@ -1798,6 +1821,11 @@ body {
   
   .add-comment textarea {
     min-height: 60px;
+  }
+  
+  .delete-comment-btn {
+    font-size: 1rem;
+    padding: 0.4rem;
   }
 }
 
