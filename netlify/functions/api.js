@@ -579,7 +579,23 @@ const handlers = {
     };
   },
 
-  // 获取应用截图
+  // 获取应用截图（通过文件名）
+  'GET /api/apps/uploads/:filename': async (body, query, user, params) => {
+    const { filename } = params;
+    
+    // 验证文件名格式（防止路径遍历攻击）
+    if (!filename || !/^screenshot-\d+\.(png|jpg|jpeg|gif|webp)$/i.test(filename)) {
+      throw new Error('无效的文件名');
+    }
+    
+    // 返回重定向到实际图片URL
+    return {
+      redirect: true,
+      location: `${process.env.NETLIFY_URL || 'https://bee-alpha-store.netlify.app'}/uploads/${filename}`
+    };
+  },
+
+  // 获取应用截图（通过应用ID，保留兼容性）
   'GET /api/apps/:id/screenshot': async (body, query, user, params) => {
     const { id: appId } = params;
 

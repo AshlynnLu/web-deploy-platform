@@ -91,7 +91,7 @@ function Dashboard() {
             <div key={app._id} className="app-card">
               <div className="app-screenshot">
                 {app.screenshot ? (
-                  <img src={`/api/apps/${app._id}/screenshot`} alt={app.title} />
+                  <img src={`/api/apps/uploads/${app.screenshot.replace('uploads/', '')}`} alt={app.title} />
                 ) : (
                   <div className="screenshot-placeholder">
                     <span>📸</span>
