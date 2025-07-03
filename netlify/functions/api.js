@@ -4,6 +4,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const OpenAI = require('openai');
+const chromium = require('chrome-aws-lambda');
+let puppeteer;
+try {
+  // 在 Netlify(或 AWS Lambda) 环境使用 puppeteer-core + chrome-aws-lambda
+  puppeteer = require('puppeteer-core');
+} catch (err) {
+  // 本地开发时回退到完整 puppeteer
+  puppeteer = require('puppeteer');
+}
 
 // 数据库连接
 let isConnected = false;
@@ -196,19 +205,49 @@ const handlers = {
       throw new Error('请输入有效的URL');
     }
 
+    // -------- 新增: 生成网页截图 --------
+    let screenshotData = '';
+    try {
+      // 根据运行环境选择对应的浏览器启动方式
+      const browser = await (async () => {
+        if (process.env.LAMBDA_TASK_ROOT) {
+          // Netlify / AWS Lambda
+          return await puppeteer.launch({
+            args: chromium.args,
+            executablePath: await chromium.executablePath,
+            headless: chromium.headless,
+          });
+        }
+        // 本地开发
+        return await puppeteer.launch({ headless: true });
+      })();
+
+      const page = await browser.newPage();
+      await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 2 });
+      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+      const buffer = await page.screenshot({ type: 'png', fullPage: true });
+      await browser.close();
+
+      // 保存为 dataURL，直接持久化到 MongoDB，避免文件存储问题
+      screenshotData = `data:image/png;base64,${buffer.toString('base64')}`;
+    } catch (err) {
+      console.error('截图失败:', err);
+    }
+    // -------- 新增结束 --------
+
     // 创建应用记录 - 使用与本地相同的字段
     const app = new App({
       userId: user.userId,
       title,
       description,
       url,
+      screenshot: screenshotData,
       isPublished: false // 默认未发布，与本地一致
     });
 
     await app.save();
 
-    // 注意：Netlify Functions不支持puppeteer截图，暂时跳过
-    console.log(`应用创建成功: ${app._id}, 截图功能在云端暂不可用`);
+    console.log(`应用创建成功: ${app._id}, 截图已${screenshotData ? '生成' : '跳过'}`);
 
     return {
       message: '应用创建成功',
@@ -217,7 +256,8 @@ const handlers = {
         title: app.title,
         description: app.description,
         url: app.url,
-        isPublished: app.isPublished
+        isPublished: app.isPublished,
+        screenshot: app.screenshot,
       }
     };
   },
@@ -593,10 +633,20 @@ const handlers = {
       throw new Error('该应用暂无截图');
     }
 
-    // 返回重定向到实际图片URL
+    // 如果存储的是 dataURL，则直接以二进制形式返回给浏览器
+    if (app.screenshot.startsWith('data:image')) {
+      const base64Data = app.screenshot.split(',')[1];
+      return {
+        binary: true,
+        headers: { 'Content-Type': 'image/png' },
+        body: base64Data,
+      };
+    }
+
+    // 否则保持原有的重定向逻辑
     return {
       redirect: true,
-      location: `${process.env.NETLIFY_URL || 'https://bee-alpha-store.netlify.app'}/${app.screenshot}`
+      location: `${process.env.NETLIFY_URL || 'https://bee-alpha-store.netlify.app'}/${app.screenshot}`,
     };
   }
 };
@@ -721,6 +771,19 @@ exports.handler = async (event, context) => {
           'Location': result.location
         },
         body: ''
+      };
+    }
+
+    // 在主 handler 中，添加对二进制响应的处理
+    if (result && result.binary) {
+      return {
+        statusCode: 200,
+        headers: {
+          ...headers,
+          ...result.headers,
+        },
+        isBase64Encoded: true,
+        body: result.body,
       };
     }
 
