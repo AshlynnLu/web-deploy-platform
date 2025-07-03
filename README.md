@@ -68,6 +68,11 @@ NETLIFY_URL=https://your-app.netlify.app
 
 **重要：** 需要在 https://app.screenshotapi.net/ 注册并获取API key，然后设置 `SCREENSHOT_API_KEY` 环境变量。
 
+**📸 截图优化特性：**
+- ✅ **智能缓存**：截图只在首次生成时调用API，后续直接从数据库返回，节省API额度
+- 🔄 **手动刷新**：支持重新生成截图功能
+- ⚡ **快速加载**：缓存的截图加载速度更快
+
 ### 4. 启动服务
 ```bash
 # 启动后端服务 (端口 5000)
@@ -149,6 +154,8 @@ web_deploy/
 - `GET /api/apps/published` - 获取已发布应用
 - `PATCH /api/apps/:id/publish` - 发布/取消发布
 - `DELETE /api/apps/:id` - 删除应用
+- `GET /api/apps/:id/screenshot` - 获取应用截图（智能缓存）
+- `POST /api/apps/:id/regenerate-screenshot` - 重新生成截图
 
 ## 🐛 故障排除
 
@@ -168,6 +175,12 @@ web_deploy/
 - 确认网络连接正常
 
 ## 📝 更新日志
+
+### v1.2.0
+- 💾 **智能缓存**: 截图数据保存到数据库，避免重复API调用
+- 🔄 **手动刷新**: 新增重新生成截图API接口
+- ⚡ **性能优化**: 缓存截图加载速度更快，节省API额度
+- 🛡️ **权限控制**: 只有应用所有者才能重新生成截图
 
 ### v1.1.0
 - 🔧 **重要更新**: 截图功能从Puppeteer迁移到ScreenshotAPI

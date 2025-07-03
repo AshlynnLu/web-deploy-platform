@@ -42,6 +42,7 @@ const appSchema = new mongoose.Schema({
   description: { type: String },
   url: { type: String, required: true },
   screenshot: { type: String }, // 截图文件路径
+  screenshotData: { type: String }, // 截图base64数据，避免重复API调用
   isPublished: { type: Boolean, default: false },
   likes: { type: Number, default: 0 }, // 点赞数量
   createdAt: { type: Date, default: Date.now },
@@ -167,20 +168,25 @@ const generateScreenshot = async (targetUrl, appId) => {
   }
 };
 
-// 保存截图到持久化存储（使用缓存URL方式）
+// 保存截图到数据库（base64编码）
 const saveScreenshot = async (imageBuffer, appId) => {
   try {
-    // 在云环境中，我们直接使用截图API的缓存机制
-    // 不需要本地存储，直接返回一个标识符
+    // 将图片转换为base64格式保存到数据库
+    const base64Data = imageBuffer.toString('base64');
     const fileName = `screenshot-${appId}-${Date.now()}.png`;
     
-    console.log(`截图已处理，应用ID: ${appId}`);
+    // 更新应用记录，保存base64数据
+    await App.findByIdAndUpdate(appId, {
+      screenshot: fileName,
+      screenshotData: base64Data
+    });
     
-    // 返回截图标识符，实际图片通过API重新获取
+    console.log(`截图已保存到数据库，应用ID: ${appId}, 图片大小: ${imageBuffer.length} bytes`);
+    
     return fileName;
     
   } catch (error) {
-    console.error('处理截图失败:', error);
+    console.error('保存截图失败:', error);
     throw error;
   }
 };
@@ -308,12 +314,10 @@ const handlers = {
 
     await app.save();
 
-    // 使用screenshotAPI生成截图
+    // 使用screenshotAPI生成截图（仅在首次创建时）
     try {
       const screenshotPath = await generateScreenshot(app.url, app._id);
       if (screenshotPath) {
-        app.screenshot = screenshotPath;
-        await app.save();
         console.log(`应用创建成功并生成截图: ${app._id}`);
       } else {
         console.log(`应用创建成功但截图生成失败: ${app._id}`);
@@ -323,15 +327,18 @@ const handlers = {
       // 即使截图失败，应用也要创建成功
     }
 
+    // 重新获取更新后的应用数据
+    const updatedApp = await App.findById(app._id);
+
     return {
       message: '应用创建成功',
       app: {
-        id: app._id,
-        title: app.title,
-        description: app.description,
-        url: app.url,
-        screenshot: app.screenshot,
-        isPublished: app.isPublished
+        id: updatedApp._id,
+        title: updatedApp.title,
+        description: updatedApp.description,
+        url: updatedApp.url,
+        screenshot: updatedApp.screenshot,
+        isPublished: updatedApp.isPublished
       }
     };
   },
@@ -696,6 +703,7 @@ const handlers = {
   // 获取应用截图
   'GET /api/apps/:id/screenshot': async (body, query, user, params) => {
     const { id: appId } = params;
+    const { force_refresh } = query; // 可选参数：强制重新截图
 
     // 检查应用是否存在
     const app = await App.findById(appId);
@@ -703,36 +711,71 @@ const handlers = {
       throw new Error('应用不存在');
     }
 
-    if (!app.screenshot) {
-      throw new Error('该应用暂无截图');
+    // 如果有保存的截图数据且没有强制刷新，直接返回
+    if (app.screenshotData && !force_refresh) {
+      console.log(`返回已缓存的截图: ${appId}`);
+      return {
+        imageData: true,
+        data: app.screenshotData,
+        contentType: 'image/png'
+      };
     }
 
-    // 重新从screenshotAPI获取图片
-    const screenshotApiKey = process.env.SCREENSHOT_API_KEY;
-    if (!screenshotApiKey) {
-      throw new Error('截图服务未配置');
+    // 如果没有截图数据或强制刷新，重新生成截图
+    if (!app.screenshotData || force_refresh) {
+      console.log(`${force_refresh ? '强制重新生成' : '首次生成'}截图: ${appId}`);
+      
+      try {
+        await generateScreenshot(app.url, appId);
+        // 重新获取更新后的应用数据
+        const updatedApp = await App.findById(appId);
+        
+        if (updatedApp.screenshotData) {
+          return {
+            imageData: true,
+            data: updatedApp.screenshotData,
+            contentType: 'image/png'
+          };
+        } else {
+          throw new Error('截图生成失败');
+        }
+      } catch (error) {
+        console.error('重新生成截图失败:', error);
+        throw new Error('截图生成失败，请稍后重试');
+      }
     }
 
-    // 构建screenshotAPI的URL（使用缓存）
-    const params_screenshot = new URLSearchParams({
-      token: screenshotApiKey,
-      url: app.url,
-      output: 'image',
-      file_type: 'png',
-      width: '1200',
-      height: '800',
-      full_page: 'false',
-      delay: '1000',
-      ttl: '3600' // 1小时缓存
-    });
+    throw new Error('该应用暂无截图');
+  },
 
-    const screenshotUrl = `https://shot.screenshotapi.net/screenshot?${params_screenshot}`;
+  // 重新生成截图
+  'POST /api/apps/:id/regenerate-screenshot': async (body, query, user, params) => {
+    if (!user) throw new Error('需要认证');
+    
+    const { id: appId } = params;
 
-    // 返回重定向到screenshotAPI
-    return {
-      redirect: true,
-      location: screenshotUrl
-    };
+    // 检查应用是否存在且属于当前用户
+    const app = await App.findOne({ _id: appId, userId: user.userId });
+    if (!app) {
+      throw new Error('应用不存在或没有权限');
+    }
+
+    try {
+      console.log(`手动重新生成截图: ${appId}`);
+      const screenshotPath = await generateScreenshot(app.url, appId);
+      
+      if (screenshotPath) {
+        return {
+          message: '截图重新生成成功',
+          screenshot: screenshotPath
+        };
+      } else {
+        throw new Error('截图生成失败');
+      }
+    } catch (error) {
+      console.error('重新生成截图失败:', error);
+      throw new Error('截图生成失败，请稍后重试');
+    }
   }
 };
 
@@ -826,7 +869,8 @@ exports.handler = async (event, context) => {
       'GET /api/favorites',
       'POST /api/apps/:id/like',
       'POST /api/apps/:id/comments',
-      'DELETE /api/apps/:appId/comments/:commentId'
+      'DELETE /api/apps/:appId/comments/:commentId',
+      'POST /api/apps/:id/regenerate-screenshot'
     ];
     
     if (needsAuth.includes(routeKey) || needsAuth.some(route => {
@@ -856,6 +900,20 @@ exports.handler = async (event, context) => {
           'Location': result.location
         },
         body: ''
+      };
+    }
+
+    // 处理图片数据响应
+    if (result && result.imageData) {
+      return {
+        statusCode: 200,
+        headers: {
+          ...headers,
+          'Content-Type': result.contentType || 'image/png',
+          'Cache-Control': 'public, max-age=3600' // 缓存1小时
+        },
+        body: result.data,
+        isBase64Encoded: true
       };
     }
 
