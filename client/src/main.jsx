@@ -9,10 +9,10 @@ import axios from 'axios'
 const isDevelopment = import.meta.env.DEV
 const baseURL = isDevelopment 
   ? 'http://localhost:3000' 
-  : window.location.origin
+  : '' // 生产环境使用相对路径
 
 axios.defaults.baseURL = baseURL
-window.BACKEND_URL = baseURL
+window.BACKEND_URL = isDevelopment ? baseURL : window.location.origin
 
 console.log('Environment:', isDevelopment ? 'development' : 'production')
 console.log('API Base URL:', baseURL)
