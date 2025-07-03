@@ -60,13 +60,15 @@ function Dashboard() {
     <div className="home-container">
       <div className="hero-section">
         <h1 className="hero-title">我的应用</h1>
-        <p className="hero-subtitle">管理您发布的应用</p>
-        <button 
-          onClick={() => navigate('/publish')} 
-          className="publish-button"
-        >
-          + 发布新应用
-        </button>
+        <p className="hero-subtitle">管理和发布您的精彩项目</p>
+        <div style={{ marginTop: '2rem' }}>
+          <button 
+            onClick={() => navigate('/publish')} 
+            className="publish-button"
+          >
+            + 发布新应用
+          </button>
+        </div>
       </div>
       
       {error && <div className="error-message">{error}</div>}

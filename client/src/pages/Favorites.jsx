@@ -66,7 +66,7 @@ function Favorites() {
     <div className="home-container">
       <div className="hero-section">
         <h1 className="hero-title">我的收藏</h1>
-        <p className="hero-subtitle">您收藏的优秀应用</p>
+        <p className="hero-subtitle">您收藏的应用列表</p>
       </div>
 
       {favorites.length === 0 ? (

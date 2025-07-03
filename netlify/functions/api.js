@@ -44,9 +44,6 @@ const appSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
-const User = mongoose.models.User || mongoose.model('User', userSchema);
-const App = mongoose.models.App || mongoose.model('App', appSchema);
-
 // 收藏模型
 const favoriteSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -54,9 +51,11 @@ const favoriteSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// 确保一个用户不能重复收藏同一个应用
+// 确保用户不能重复收藏同一个应用
 favoriteSchema.index({ userId: 1, appId: 1 }, { unique: true });
 
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+const App = mongoose.models.App || mongoose.model('App', appSchema);
 const Favorite = mongoose.models.Favorite || mongoose.model('Favorite', favoriteSchema);
 
 // OpenAI配置
@@ -324,32 +323,33 @@ const handlers = {
   'POST /api/apps/:id/favorite': async (body, query, user, params) => {
     if (!user) throw new Error('需要认证');
     
-    const { id } = params;
-    
+    const { id: appId } = params;
+    const userId = user.userId;
+
     // 检查应用是否存在
-    const app = await App.findById(id);
+    const app = await App.findById(appId);
     if (!app) {
       throw new Error('应用不存在');
     }
 
-    // 检查是否已收藏
-    const existingFavorite = await Favorite.findOne({
-      userId: user.userId,
-      appId: id
-    });
+    // 检查是否已经收藏
+    const existingFavorite = await Favorite.findOne({ userId, appId });
 
     if (existingFavorite) {
-      // 取消收藏
-      await Favorite.deleteOne({ _id: existingFavorite._id });
-      return { message: '取消收藏成功', favorited: false };
+      // 如果已收藏，则取消收藏
+      await Favorite.findByIdAndDelete(existingFavorite._id);
+      return {
+        message: '已取消收藏',
+        isFavorite: false
+      };
     } else {
-      // 添加收藏
-      const favorite = new Favorite({
-        userId: user.userId,
-        appId: id
-      });
+      // 如果未收藏，则添加收藏
+      const favorite = new Favorite({ userId, appId });
       await favorite.save();
-      return { message: '收藏成功', favorited: true };
+      return {
+        message: '收藏成功',
+        isFavorite: true
+      };
     }
   },
 
@@ -367,27 +367,15 @@ const handlers = {
       })
       .sort({ createdAt: -1 });
 
-    // 转换数据格式，添加收藏时间
-    const result = favorites.map(fav => ({
-      ...fav.appId.toObject(),
-      favoritedAt: fav.createdAt
-    }));
+    // 过滤掉已删除的应用，并添加收藏时间
+    const validFavorites = favorites
+      .filter(fav => fav.appId) // 确保应用还存在
+      .map(fav => ({
+        ...fav.appId.toObject(),
+        favoritedAt: fav.createdAt
+      }));
 
-    return result;
-  },
-
-  // 检查应用是否被收藏
-  'GET /api/apps/:id/favorite': async (query, params, user) => {
-    if (!user) throw new Error('需要认证');
-    
-    const { id } = params;
-    
-    const favorite = await Favorite.findOne({
-      userId: user.userId,
-      appId: id
-    });
-
-    return { favorited: !!favorite };
+    return validFavorites;
   }
 };
 
@@ -478,8 +466,7 @@ exports.handler = async (event, context) => {
       'DELETE /api/apps/:id',
       'POST /api/generate-description',
       'POST /api/apps/:id/favorite',
-      'GET /api/favorites',
-      'GET /api/apps/:id/favorite'
+      'GET /api/favorites'
     ];
     
     if (needsAuth.includes(routeKey) || needsAuth.some(route => {

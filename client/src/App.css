@@ -413,14 +413,13 @@ body {
 
 /* 认证页面样式 */
 .auth-container {
-  max-width: 600px; /* 和发布应用页面一样的宽度 */
-  margin: 0 auto;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: calc(100vh - 80px);
   padding: 2rem;
   width: 100%;
-  min-height: calc(100vh - 80px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding-left: 4rem; /* 左侧留更多空间 */
 }
 
 .auth-card {
@@ -430,6 +429,7 @@ body {
   border-radius: 20px;
   padding: 2.5rem;
   width: 100%;
+  max-width: 600px; /* 与发布应用页面保持一致 */
   box-shadow: 0 20px 40px rgba(230, 126, 34, 0.2);
 }
 
@@ -634,7 +634,11 @@ body {
   
   /* 大屏幕的认证页面优化 */
   .auth-container {
-    max-width: 700px; /* 和发布应用页面一样 */
+    padding-left: 6rem; /* 大屏幕增加左边距 */
+  }
+  
+  .auth-card {
+    max-width: 700px; /* 大屏幕增加表单宽度，与发布应用页面一致 */
   }
   
   .nav-brand {
@@ -698,7 +702,11 @@ body {
   
   /* 中等屏幕的认证页面样式 */
   .auth-container {
-    max-width: 600px; /* 和发布应用页面一样 */
+    padding-left: 2rem; /* 中等屏幕减少左边距 */
+  }
+  
+  .auth-card {
+    max-width: 600px; /* 中等屏幕保持与发布应用页面一致 */
   }
   
   .nav-brand {
@@ -1828,7 +1836,11 @@ body {
   
   /* 超宽屏的认证页面优化 */
   .auth-container {
-    max-width: 800px; /* 超宽屏和发布应用页面保持一致 */
+    padding-left: 8rem; /* 超宽屏增加更多左边距 */
+  }
+  
+  .auth-card {
+    max-width: 800px; /* 超宽屏进一步增加表单宽度 */
   }
 }
 
@@ -2266,13 +2278,16 @@ body {
 /* 优化表单在不同设备上的显示 */
 @media (max-width: 768px) {
   .auth-container {
-    padding: 1rem;
+    justify-content: center; /* 移动端恢复居中 */
+    padding: 0.5rem;
+    padding-left: 0.5rem; /* 移动端重置左边距 */
     align-items: flex-start;
     padding-top: 2rem;
   }
   
   .auth-card {
     width: 100%;
+    max-width: 100%;
     margin: 0;
     padding: 1.5rem;
     border-radius: 12px;
@@ -2286,7 +2301,9 @@ body {
 
 @media (max-width: 480px) {
   .auth-container {
-    padding: 0.5rem;
+    justify-content: center; /* 小屏幕也保持居中 */
+    padding: 1rem;
+    padding-left: 1rem; /* 重置左边距 */
     padding-top: 1rem;
   }
   
