@@ -40,7 +40,7 @@ function PublicApps() {
               <div>链接：<a href={app.url} target="_blank" rel="noopener noreferrer">{app.url}</a></div>
               {app.screenshot && (
                 <img 
-                  src={`/api/uploads/${app.screenshot.split('/').pop()}`} 
+                  src={`/api/apps/${app._id}/screenshot`} 
                   alt={`${app.title} 截图`} 
                   style={{width: '100%', maxWidth: '400px', height: 'auto', marginTop: '10px'}}
                   onLoad={(e) => {

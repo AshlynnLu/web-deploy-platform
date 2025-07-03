@@ -579,19 +579,24 @@ const handlers = {
     };
   },
 
-  // 静态文件服务 - 提供上传的文件
-  'GET /api/uploads/:filename': async (body, query, user, params) => {
-    const { filename } = params;
-    
-    // 验证文件名格式（防止路径遍历攻击）
-    if (!filename || !/^[a-zA-Z0-9\-_.]+\.(png|jpg|jpeg|gif|webp)$/i.test(filename)) {
-      throw new Error('无效的文件名');
+  // 获取应用截图
+  'GET /api/apps/:id/screenshot': async (body, query, user, params) => {
+    const { id: appId } = params;
+
+    // 检查应用是否存在
+    const app = await App.findById(appId);
+    if (!app) {
+      throw new Error('应用不存在');
     }
-    
+
+    if (!app.screenshot) {
+      throw new Error('该应用暂无截图');
+    }
+
     // 返回重定向到实际图片URL
     return {
       redirect: true,
-      location: `${process.env.NETLIFY_URL || 'https://bee-alpha-store.netlify.app'}/uploads/${filename}`
+      location: `${process.env.NETLIFY_URL || 'https://bee-alpha-store.netlify.app'}/${app.screenshot}`
     };
   }
 };
