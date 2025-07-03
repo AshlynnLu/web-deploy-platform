@@ -82,7 +82,7 @@ function Favorites() {
             <div key={app._id} className="app-card">
               <div className="app-screenshot">
                 {app.screenshot ? (
-                  <img src={`${window.location.origin}/${app.screenshot}`} alt={app.title} />
+                  <img src={`${window.BACKEND_URL}/${app.screenshot}`} alt={app.title} />
                 ) : (
                   <div className="screenshot-placeholder">
                     <span>📸</span>
