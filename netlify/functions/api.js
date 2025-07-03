@@ -259,10 +259,19 @@ const handlers = {
 
   // 用户登录
   'POST /api/login': async (body) => {
-    const { email, password } = body;
+    const { email, loginId, password } = body;
+    const identifier = (loginId || email || '').trim();
+    if (!identifier || !password) {
+      throw new Error('请输入邮箱/用户名和密码');
+    }
 
-    // 查找用户
-    const user = await User.findOne({ email });
+    // 查找用户（支持用户名或邮箱）
+    const user = await User.findOne({
+      $or: [
+        { email: identifier },
+        { username: identifier }
+      ]
+    });
     if (!user) {
       throw new Error('用户不存在');
     }
