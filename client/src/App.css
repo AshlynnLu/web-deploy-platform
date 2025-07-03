@@ -284,8 +284,8 @@ body {
 /* 应用网格 */
 .apps-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
   margin-top: 2rem;
   padding: 0 1rem;
   width: 100%;
