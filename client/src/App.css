@@ -1129,17 +1129,31 @@ body {
 /* ==================== 移动端菜单 ==================== */
 .mobile-menu-btn {
   display: none;
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid var(--primary-color);
   cursor: pointer;
   padding: var(--space-sm);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   transition: var(--transition-fast);
-  z-index: var(--z-tooltip); /* 提升层级，确保按钮始终位于最上层 */
+  z-index: 99999; /* 超高层级确保可见 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
 }
 
 .mobile-menu-btn:hover {
-  background: rgba(255, 140, 0, 0.1);
+  background: var(--primary-color);
+  transform: scale(1.05);
+}
+
+.mobile-menu-btn:active {
+  transform: scale(0.95);
+}
+
+.mobile-menu-btn:hover .hamburger span {
+  background: var(--white);
 }
 
 .hamburger {
@@ -1147,18 +1161,19 @@ body {
   flex-direction: column;
   width: 24px;
   height: 18px;
-  position: relative; /* 保证能应用 z-index */
-  z-index: var(--z-tooltip); /* 提升层级，确保高于导航栏 */
+  position: relative;
+  z-index: 99999;
 }
 
 .hamburger span {
   width: 24px;
-  height: 3px; /* 加粗 */
+  height: 3px;
   background: var(--primary-dark);
   display: block;
-  margin: 5px 0;
+  margin: 2px 0;
   transition: var(--transition-fast);
   transform-origin: center;
+  border-radius: 2px;
 }
 
 .hamburger span:nth-child(1) {
@@ -1175,16 +1190,18 @@ body {
 }
 
 .hamburger.active span:nth-child(1) {
-  transform: translateY(8px) rotate(45deg);
+  transform: translateY(7px) rotate(45deg);
+  background: var(--primary-dark);
 }
 
 .hamburger.active span:nth-child(2) {
   opacity: 0;
-  transform: translateY(8px) scaleX(0);
+  transform: translateY(7px) scaleX(0);
 }
 
 .hamburger.active span:nth-child(3) {
-  transform: translateY(8px) rotate(-45deg);
+  transform: translateY(7px) rotate(-45deg);
+  background: var(--primary-dark);
 }
 
 .mobile-menu-overlay {
@@ -1309,21 +1326,122 @@ body {
   .navbar {
     width: 100%;
     padding: var(--space-md);
-    flex-direction: column;
+    flex-direction: row; /* 改为横向布局 */
+    justify-content: space-between;
+    align-items: center;
     gap: var(--space-md);
-    min-height: auto;
-    position:fixed;
+    min-height: 60px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9998;
   }
   
   .nav-brand {
-    min-width: auto;
-    justify-content: center;
+    flex: 1;
+    justify-content: flex-start;
+  }
+  
+  .mobile-menu-btn {
+    display: flex !important;
+    position: relative;
+    right: 0;
+    top: 0;
+    transform: none;
+    z-index: 99999;
+    order: 2; /* 确保在右侧 */
   }
   
   .nav-links {
-    min-width: auto;
+    position: fixed;
+    top: 0;
+    right: -100vw;
+    width: 100vw;
+    height: 100vh;
+    background: var(--white);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    overflow-y: auto;
+    padding-top: 80px; /* 给导航栏让出空间 */
+    border: none;
+    border-radius: 0;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.15);
+    transition: right var(--transition-normal);
+    z-index: 9997;
+  }
+  
+  .nav-links.mobile-menu-open {
+    right: 0;
+  }
+  
+  .nav-link {
+    color: var(--gray-700);
+    border-bottom: 1px solid var(--gray-200);
+    padding: var(--space-lg) var(--space-lg);
+    border-radius: 0;
+    text-align: left;
+    width: 100%;
+    display: block;
+  }
+  
+  .nav-link:hover {
+    background: var(--light-orange);
+    color: var(--primary-dark);
+  }
+  
+  .close-menu-btn {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    background: var(--primary-color);
+    color: var(--white);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
+    box-shadow: var(--shadow-md);
+    z-index: 99999;
+  }
+  
+  .close-menu-btn:hover {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+  }
+  
+  .user-info {
+    margin: var(--space-md) var(--space-lg);
+    justify-content: center;
+  }
+  
+  .logout-btn {
+    background: var(--error);
+    color: var(--white);
+    margin: var(--space-md) var(--space-lg);
+    text-align: center;
+    border-radius: var(--radius-lg);
+  }
+  
+  .register-btn {
+    background: var(--success);
+    color: var(--white);
+    margin: var(--space-md) var(--space-lg);
+    text-align: center;
+    border-radius: var(--radius-lg);
+  }
+  
+  /* 页面内容顶部留白 */
+  .main-content,
+  .home-container,
+  .auth-container,
+  .publish-app-container {
+    padding-top: 80px;
   }
   
   .nav-title {
@@ -1394,70 +1512,6 @@ body {
     min-height: 80px;
   }
   
-  .mobile-menu-btn {
-    display: block;
-  }
-  
-  .nav-links {
-    position: fixed;
-    top: 0;
-    right: -100vw;
-    width: 100vw;
-    height: 100vh;
-    background: var(--white);
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    overflow-y: auto;
-    padding-top: var(--space-3xl);
-    border: none;
-    border-radius: 0;
-    box-shadow: 0 0 12px rgba(0, 0, 0, 0.15);
-    transition: right var(--transition-normal);
-    z-index: var(--z-sticky);
-  }
-  
-  .nav-links.mobile-menu-open {
-    right: 0;
-  }
-  
-  .nav-link {
-    color: var(--gray-700);
-    border-bottom: 1px solid var(--gray-200);
-    padding: var(--space-md) var(--space-lg);
-    border-radius: 0;
-  }
-  /* Mobile nav links background */
-  .nav-links {
-    background: var(--gray-50);
-    color: var(--gray-800);
-  }
-  .nav-link {
-    color: var(--gray-800);
-  }
-  .close-menu-btn {
-    position: absolute;
-    top: var(--space-md);
-    right: var(--space-md);
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--primary-dark);
-    cursor: pointer;
-  }
-  .close-menu-btn:active {
-    transform: scale(0.9);
-  }
-  .mobile-menu-btn {
-    display:block;
-    position:absolute;
-    left:var(--space-md);
-    top:50%;
-    transform:translateY(-50%);
-    z-index: var(--z-modal); /* 保证最上层 */
-    background:none;
-  }
-  .hamburger span {background:var(--primary-dark);}
   .interaction-buttons > a,
   .interaction-buttons > button{
     min-width:72px;
@@ -1839,17 +1893,4 @@ body {
 .view-btn:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
-}
-
-/* 提升汉堡按钮图层 */
-@media (max-width: 768px) {
-  .mobile-menu-btn {
-    z-index: 9999;
-  }
-  .main-content,
-  .home-container,
-  .auth-container,
-  .publish-app-container {
-    padding-top: calc(var(--nav-height) + var(--space-lg));
-  }
 }
