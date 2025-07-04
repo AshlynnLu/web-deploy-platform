@@ -7,12 +7,10 @@ import Dashboard from './pages/Dashboard';
 import PublishApp from './pages/PublishApp';
 import PublicApps from './pages/PublicApps';
 import Favorites from './pages/Favorites';
-import { LanguageProvider, useLang } from './LanguageContext';
 import './App.css';
 
 // 导航栏组件
 function Navbar({ isLoggedIn, onLogout, username }) {
-  const { lang, toggleLang, t } = useLang();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -32,13 +30,6 @@ function Navbar({ isLoggedIn, onLogout, username }) {
         </a>
       </div>
       
-      {/* 语言切换 */}
-      <div className="lang-switch">
-        <button className={`lang-btn ${lang==='zh'?'active':''}`} onClick={()=>toggleLang('zh')}>中文</button>
-        <span>|</span>
-        <button className={`lang-btn ${lang==='en'?'active':''}`} onClick={()=>toggleLang('en')}>EN</button>
-      </div>
-      
       {/* 移动端菜单按钮 */}
       <button 
         className="mobile-menu-btn"
@@ -54,23 +45,26 @@ function Navbar({ isLoggedIn, onLogout, username }) {
       </button>
       
       <div className={`nav-links ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
-        <a href="/" className="nav-link" onClick={closeMobileMenu}>{t('home')}</a>
+        {isMobileMenuOpen && (
+          <button className="close-menu-btn" onClick={closeMobileMenu} aria-label="关闭菜单">✖</button>
+        )}
+        <a href="/" className="nav-link" onClick={closeMobileMenu}>首页</a>
         {isLoggedIn ? (
           <>
-            <a href="/dashboard" className="nav-link" onClick={closeMobileMenu}>{t('myWorks')}</a>
-            <a href="/publish" className="nav-link" onClick={closeMobileMenu}>{t('publishWork')}</a>
-            <a href="/favorites" className="nav-link" onClick={closeMobileMenu}>{t('favorites')}</a>
+            <a href="/dashboard" className="nav-link" onClick={closeMobileMenu}>我的作品</a>
+            <a href="/publish" className="nav-link" onClick={closeMobileMenu}>发布作品</a>
+            <a href="/favorites" className="nav-link" onClick={closeMobileMenu}>我的收藏</a>
             {username && (
               <div className="user-info">
                 <span className="username">👋 {username}</span>
               </div>
             )}
-            <button onClick={() => { onLogout(); closeMobileMenu(); }} className="nav-link logout-btn">{t('logout')}</button>
+            <button onClick={() => { onLogout(); closeMobileMenu(); }} className="nav-link logout-btn">退出</button>
           </>
         ) : (
           <>
-            <a href="/login" className="nav-link" onClick={closeMobileMenu}>{t('login')}</a>
-            <a href="/register" className="nav-link register-btn" onClick={closeMobileMenu}>{t('register')}</a>
+            <a href="/login" className="nav-link" onClick={closeMobileMenu}>登录</a>
+            <a href="/register" className="nav-link register-btn" onClick={closeMobileMenu}>注册</a>
           </>
         )}
       </div>
@@ -85,7 +79,6 @@ function Navbar({ isLoggedIn, onLogout, username }) {
 
 // 首页组件 - 显示所有已发布的作品
 function HomePage() {
-  const { t, lang } = useLang();
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -495,23 +488,21 @@ function App() {
   }
 
   return (
-    <LanguageProvider>
-      <div className="app-container">
-        <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} username={username} />
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/register" element={<Register setIsLoggedIn={handleLogin} />} />
-            <Route path="/login" element={<Login setIsLoggedIn={handleLogin} />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/publish" element={<PublishApp />} />
-            <Route path="/apps" element={<PublicApps />} />
-            <Route path="/favorites" element={<Favorites />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
-      </div>
-    </LanguageProvider>
+    <div className="app-container">
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} username={username} />
+      <main className="main-content">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/register" element={<Register setIsLoggedIn={handleLogin} />} />
+          <Route path="/login" element={<Login setIsLoggedIn={handleLogin} />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/publish" element={<PublishApp />} />
+          <Route path="/apps" element={<PublicApps />} />
+          <Route path="/favorites" element={<Favorites />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
 

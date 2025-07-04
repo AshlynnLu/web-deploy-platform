@@ -1416,6 +1416,27 @@ body {
     padding: var(--space-md) var(--space-lg);
     border-radius: 0;
   }
+  /* Mobile nav links background */
+  .nav-links {
+    background: var(--gray-50);
+    color: var(--gray-800);
+  }
+  .nav-link {
+    color: var(--gray-800);
+  }
+  .close-menu-btn {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--primary-dark);
+    cursor: pointer;
+  }
+  .close-menu-btn:active {
+    transform: scale(0.9);
+  }
 }
 
 /* 手机设备 (480px以下) */
