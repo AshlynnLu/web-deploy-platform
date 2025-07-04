@@ -293,6 +293,8 @@ body {
   box-shadow: var(--shadow-lg);
   transition: var(--transition-normal);
   border: 2px solid rgba(255, 140, 0, 0.1);
+  display:flex;
+  flex-direction:column;
 }
 
 .app-card:hover {
@@ -318,6 +320,9 @@ body {
 
 .app-info {
   padding: var(--space-lg);
+  display:flex;
+  flex-direction:column;
+  flex:1;
 }
 
 .app-title {
@@ -388,8 +393,9 @@ body {
 
 .app-actions {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-sm);
+  align-items: center;
+  margin-top:auto;
 }
 
 .interaction-buttons {
@@ -460,10 +466,10 @@ body {
 }
 
 .app-stats {
-  display: flex;
+  display:flex;
   gap: var(--space-md);
+  flex-wrap:wrap;
   margin-bottom: var(--space-md);
-  flex-wrap: wrap;
 }
 
 .likes-count,
@@ -1437,6 +1443,17 @@ body {
   .close-menu-btn:active {
     transform: scale(0.9);
   }
+  .mobile-menu-btn {
+    display:block;
+    position:absolute;
+    left:var(--space-md);
+    top:50%;
+    transform:translateY(-50%);
+    z-index:var(--z-fixed);
+    background:none;
+  }
+  .hamburger span {background:var(--primary-dark);}
+  .interaction-buttons>*{min-width:60px;justify-content:center;}
 }
 
 /* 手机设备 (480px以下) */
