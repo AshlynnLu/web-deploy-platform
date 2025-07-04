@@ -799,7 +799,7 @@ body {
   display: flex;
   justify-content: center;
   gap: var(--space-md);
-  margin-top: var(--space-xl);
+  margin-bottom: var(--space-3xl);
   flex-wrap: wrap;
 }
 
@@ -1696,59 +1696,76 @@ body {
   }
 }
 
-/* 暗色模式 */
+/* 1. 首页tab按钮与作品卡片间距加大 */
+.category-tabs {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-3xl);
+  flex-wrap: wrap;
+}
+
+/* 2. 评论按钮做大一点 */
+.comments-btn {
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--white);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-normal);
+  margin-top: var(--space-sm);
+  min-width: 120px;
+}
+.comments-btn:hover {
+  background: linear-gradient(135deg, var(--primary-dark), var(--accent-dark));
+  color: var(--white);
+}
+
+/* 3. 收藏页按钮左右对齐 */
+.app-actions {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-md);
+  justify-content: center;
+  margin-top: var(--space-lg);
+}
+@media (max-width: 600px) {
+  .app-actions {
+    flex-direction: column;
+    gap: var(--space-sm);
+    align-items: stretch;
+  }
+}
+
+/* 4. 收藏页星星icon */
+.favorites-title-icon {
+  font-size: 2.2rem;
+  vertical-align: middle;
+  margin-right: var(--space-sm);
+  color: var(--primary-color);
+}
+
+/* 5. 登录/发布页底部提示色加深 */
+.auth-footer {
+  text-align: center;
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid rgba(255, 140, 0, 0.2);
+}
+.auth-footer p, .auth-footer {
+  color: var(--primary-dark) !important;
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  opacity: 1;
+}
+
+/* 6. 移除深色模式适配，始终橙白色 */
 @media (prefers-color-scheme: dark) {
-  body {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2c3e50 100%);
-    color: var(--white);
-  }
-  
-  .navbar {
-    background: rgba(28, 28, 30, 0.95);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .app-card {
-    background: rgba(28, 28, 30, 0.8);
-    color: var(--white);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .app-title {
-    color: var(--white);
-  }
-  
-  .app-description {
-    color: rgba(255, 255, 255, 0.7);
-  }
-}
-
-/* 触摸设备优化 */
-@media (hover: none) and (pointer: coarse) {
-  .app-card:hover {
-    transform: none;
-  }
-  
-  .button,
-  .btn {
-    min-height: 44px;
-  }
-}
-
-/* 打印样式 */
-@media print {
-  .navbar {
-    display: none;
-  }
-  
-  .app-card {
-    break-inside: avoid;
-    border: 1px solid #ccc;
-    box-shadow: none;
-  }
-  
-  body {
-    background: white;
-    color: black;
+  body, .navbar, .app-card, .auth-card, .publish-app-card, .home-container {
+    background: unset !important;
+    color: unset !important;
   }
 }

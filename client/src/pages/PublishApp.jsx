@@ -71,7 +71,7 @@ function PublishApp() {
       <div className="publish-app-card">
         <div className="auth-header">
           <h2>🌟 分享你的精彩作品</h2>
-          <p>让同龄人看到你的创意和才华，获得更多灵感和鼓励</p>
+          <p>让更多人看到你的创意和才华，获得更多灵感和鼓励</p>
         </div>
         
         <form onSubmit={handleSubmit} className="auth-form">

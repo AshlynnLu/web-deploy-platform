@@ -46,7 +46,7 @@ function Register({ setIsLoggedIn }) {
       <div className="auth-card">
         <div className="auth-header">
           <h2>加入Bee Store大家庭！🎨</h2>
-          <p>创建账户，开始分享你的创意作品，与同龄人一起成长</p>
+          <p>创建账户，开始分享你的创意作品，与大家一起成长</p>
         </div>
         
         <form onSubmit={handleSubmit} className="auth-form">

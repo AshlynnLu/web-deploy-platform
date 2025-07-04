@@ -65,15 +65,15 @@ function Favorites() {
   return (
     <div className="home-container">
       <div className="hero-section">
-        <h1 className="hero-title">💖 我的收藏夹</h1>
-        <p className="hero-subtitle">收藏那些让你眼前一亮的同学作品</p>
+        <h1 className="hero-title"><span className="favorites-title-icon">⭐</span>我的收藏夹</h1>
+        <p className="hero-subtitle">收藏那些让你眼前一亮的作品</p>
       </div>
 
       {favorites.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">💝</div>
           <h3>收藏夹还是空的</h3>
-          <p>去首页发现一些让你惊艳的同学作品吧！</p>
+          <p>去首页发现一些让你惊艳的作品吧！</p>
           <a href="/" className="auth-button">🔍 发现精彩作品</a>
         </div>
       ) : (
@@ -102,6 +102,12 @@ function Favorites() {
                   </span>
                 </div>
                 <div className="app-actions">
+                  <button 
+                    onClick={() => handleUnfavorite(app._id)}
+                    className="action-button delete"
+                  >
+                    💔 取消收藏
+                  </button>
                   <a 
                     href={app.url} 
                     target="_blank" 
@@ -110,12 +116,6 @@ function Favorites() {
                   >
                     🌟 查看作品
                   </a>
-                  <button 
-                    onClick={() => handleUnfavorite(app._id)}
-                    className="action-button delete"
-                  >
-                    💔 取消收藏
-                  </button>
                 </div>
               </div>
             </div>
