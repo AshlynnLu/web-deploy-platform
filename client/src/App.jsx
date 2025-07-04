@@ -7,10 +7,12 @@ import Dashboard from './pages/Dashboard';
 import PublishApp from './pages/PublishApp';
 import PublicApps from './pages/PublicApps';
 import Favorites from './pages/Favorites';
+import { LanguageProvider, useLang } from './LanguageContext';
 import './App.css';
 
 // 导航栏组件
 function Navbar({ isLoggedIn, onLogout, username }) {
+  const { lang, toggleLang, t } = useLang();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -30,6 +32,13 @@ function Navbar({ isLoggedIn, onLogout, username }) {
         </a>
       </div>
       
+      {/* 语言切换 */}
+      <div className="lang-switch">
+        <button className={`lang-btn ${lang==='zh'?'active':''}`} onClick={()=>toggleLang('zh')}>中文</button>
+        <span>|</span>
+        <button className={`lang-btn ${lang==='en'?'active':''}`} onClick={()=>toggleLang('en')}>EN</button>
+      </div>
+      
       {/* 移动端菜单按钮 */}
       <button 
         className="mobile-menu-btn"
@@ -45,23 +54,23 @@ function Navbar({ isLoggedIn, onLogout, username }) {
       </button>
       
       <div className={`nav-links ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
-        <a href="/" className="nav-link" onClick={closeMobileMenu}>首页</a>
+        <a href="/" className="nav-link" onClick={closeMobileMenu}>{t('home')}</a>
         {isLoggedIn ? (
           <>
-            <a href="/dashboard" className="nav-link" onClick={closeMobileMenu}>我的作品</a>
-            <a href="/publish" className="nav-link" onClick={closeMobileMenu}>发布作品</a>
-            <a href="/favorites" className="nav-link" onClick={closeMobileMenu}>我的收藏</a>
+            <a href="/dashboard" className="nav-link" onClick={closeMobileMenu}>{t('myWorks')}</a>
+            <a href="/publish" className="nav-link" onClick={closeMobileMenu}>{t('publishWork')}</a>
+            <a href="/favorites" className="nav-link" onClick={closeMobileMenu}>{t('favorites')}</a>
             {username && (
               <div className="user-info">
                 <span className="username">👋 {username}</span>
               </div>
             )}
-            <button onClick={() => { onLogout(); closeMobileMenu(); }} className="nav-link logout-btn">退出</button>
+            <button onClick={() => { onLogout(); closeMobileMenu(); }} className="nav-link logout-btn">{t('logout')}</button>
           </>
         ) : (
           <>
-            <a href="/login" className="nav-link" onClick={closeMobileMenu}>登录</a>
-            <a href="/register" className="nav-link register-btn" onClick={closeMobileMenu}>注册</a>
+            <a href="/login" className="nav-link" onClick={closeMobileMenu}>{t('login')}</a>
+            <a href="/register" className="nav-link register-btn" onClick={closeMobileMenu}>{t('register')}</a>
           </>
         )}
       </div>
@@ -76,6 +85,7 @@ function Navbar({ isLoggedIn, onLogout, username }) {
 
 // 首页组件 - 显示所有已发布的作品
 function HomePage() {
+  const { t, lang } = useLang();
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -282,8 +292,8 @@ function HomePage() {
   return (
     <div className="home-container">
       <div className="hero-section">
-        <h1 className="hero-title">🐝 发现同龄人的精彩作品</h1>
-        <p className="hero-subtitle">在Bee Store，高中生们分享自己的创意项目，互相学习，共同成长</p>
+        <h1 className="hero-title">🐝 发现精彩作品</h1>
+        <p className="hero-subtitle">在Bee Store分享自己的创意项目，互相学习，共同成长</p>
       </div>
       
       <div className="category-tabs">
@@ -333,18 +343,6 @@ function HomePage() {
                   <span className="likes-count">❤️ {app.likes || 0}</span>
                   <span className="comments-count">💬 {app.commentsCount || 0}</span>
                   <span className="created-time">🕒 {new Date(app.createdAt).toLocaleDateString()}</span>
-                  {(() => {
-                    // 优先显示网页真实更新时间，其次显示系统更新时间
-                    const displayTime = app.webpageUpdatedAt || app.updatedAt;
-                    const timeType = app.webpageUpdatedAt ? '作品更新' : '系统更新';
-                    const showUpdate = displayTime && displayTime !== app.createdAt;
-                    
-                    return showUpdate && (
-                      <span className="updated-time" title={`${timeType}时间`}>
-                        🔄 {new Date(displayTime).toLocaleDateString()}
-                      </span>
-                    );
-                  })()}
                 </div>
 
                 <div className="app-actions">
@@ -356,34 +354,29 @@ function HomePage() {
                   >
                     查看作品 →
                   </a>
-                  
-                  <button 
-                    onClick={() => handleViewComments(app)}
-                    className="comments-btn"
-                    title="查看评论"
-                  >
-                    💬 评论
-                  </button>
-                  
-                  {currentUserId && (
-                    <div className="interaction-buttons">
-                      <button 
-                        onClick={() => handleLike(app._id)}
-                        className={`like-btn ${app.isLikedByCurrentUser ? 'liked' : ''}`}
-                        title={app.isLikedByCurrentUser ? '取消点赞' : '点赞'}
-                      >
-                        {app.isLikedByCurrentUser ? '❤️' : '🤍'} {app.likes || 0}
-                      </button>
-                      
-                      <button 
-                        onClick={() => handleFavorite(app._id)}
-                        className={`favorite-btn ${app.isFavoriteByCurrentUser ? 'favorited' : ''}`}
-                        title={app.isFavoriteByCurrentUser ? '取消收藏' : '收藏'}
-                      >
-                        {app.isFavoriteByCurrentUser ? '⭐' : '☆'}
-                      </button>
-                    </div>
-                  )}
+                  <div className="interaction-buttons">
+                    <button 
+                      onClick={() => handleLike(app._id)}
+                      className={`like-btn ${app.isLikedByCurrentUser ? 'liked' : ''}`}
+                      title={app.isLikedByCurrentUser ? '取消点赞' : '点赞'}
+                    >
+                      {app.isLikedByCurrentUser ? '❤️' : '🤍'} {app.likes || 0}
+                    </button>
+                    <button 
+                      onClick={() => handleFavorite(app._id)}
+                      className={`favorite-btn ${app.isFavoriteByCurrentUser ? 'favorited' : ''}`}
+                      title={app.isFavoriteByCurrentUser ? '取消收藏' : '收藏'}
+                    >
+                      {app.isFavoriteByCurrentUser ? '⭐' : '☆'}
+                    </button>
+                    <button 
+                      onClick={() => handleViewComments(app)}
+                      className="like-btn"
+                      title="查看评论"
+                    >
+                      💬 评论
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -502,21 +495,23 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} username={username} />
-      <main className="main-content">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/register" element={<Register setIsLoggedIn={handleLogin} />} />
-          <Route path="/login" element={<Login setIsLoggedIn={handleLogin} />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/publish" element={<PublishApp />} />
-          <Route path="/apps" element={<PublicApps />} />
-          <Route path="/favorites" element={<Favorites />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </main>
-    </div>
+    <LanguageProvider>
+      <div className="app-container">
+        <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} username={username} />
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/register" element={<Register setIsLoggedIn={handleLogin} />} />
+            <Route path="/login" element={<Login setIsLoggedIn={handleLogin} />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/publish" element={<PublishApp />} />
+            <Route path="/apps" element={<PublicApps />} />
+            <Route path="/favorites" element={<Favorites />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
+      </div>
+    </LanguageProvider>
   );
 }
 
