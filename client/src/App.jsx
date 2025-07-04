@@ -339,15 +339,16 @@ function HomePage() {
                 </div>
 
                 <div className="app-actions">
-                  <a 
-                    href={app.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="app-link"
-                  >
-                    查看作品 →
-                  </a>
                   <div className="interaction-buttons">
+                    <a 
+                      href={app.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="view-btn"
+                      title="查看作品"
+                    >
+                      🔗 查看
+                    </a>
                     <button 
                       onClick={() => handleLike(app._id)}
                       className={`like-btn ${app.isLikedByCurrentUser ? 'liked' : ''}`}

@@ -1142,12 +1142,12 @@ body {
 }
 
 .hamburger span {
-  display: block;
-  width: 100%;
+  width: 24px;
   height: 2px;
-  background: var(--white);
-  border-radius: 1px;
-  transition: var(--transition-normal);
+  background: var(--primary-dark);
+  display: block;
+  margin: 5px 0;
+  transition: var(--transition-fast);
   transform-origin: center;
 }
 
@@ -1789,4 +1789,24 @@ body {
     background: unset !important;
     color: unset !important;
   }
+}
+
+.view-btn {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--white);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-normal);
+  text-decoration: none;
+}
+.view-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
