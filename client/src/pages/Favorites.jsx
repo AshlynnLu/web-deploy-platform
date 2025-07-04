@@ -41,7 +41,7 @@ function Favorites() {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // 从列表中移除该应用
+      // 从列表中移除该作品
       setFavorites(favorites.filter(app => app._id !== appId));
     } catch (err) {
       console.error('取消收藏失败:', err);
@@ -53,7 +53,7 @@ function Favorites() {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
-        <p>加载中...</p>
+        <p>正在加载收藏的作品...</p>
       </div>
     );
   }
@@ -65,16 +65,16 @@ function Favorites() {
   return (
     <div className="home-container">
       <div className="hero-section">
-        <h1 className="hero-title">我的收藏</h1>
-        <p className="hero-subtitle">您收藏的应用列表</p>
+        <h1 className="hero-title">💖 我的收藏夹</h1>
+        <p className="hero-subtitle">收藏那些让你眼前一亮的同学作品</p>
       </div>
 
       {favorites.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">❤️</div>
-          <h3>暂无收藏</h3>
-          <p>去首页发现一些有趣的应用吧！</p>
-          <a href="/" className="button-primary">浏览应用</a>
+          <div className="empty-icon">💝</div>
+          <h3>收藏夹还是空的</h3>
+          <p>去首页发现一些让你惊艳的同学作品吧！</p>
+          <a href="/" className="auth-button">🔍 发现精彩作品</a>
         </div>
       ) : (
         <div className="apps-grid">
@@ -91,14 +91,14 @@ function Favorites() {
               </div>
               <div className="app-info">
                 <h3 className="app-title">{app.title}</h3>
-                <p className="app-author">by {app.userId?.username || '未知用户'}</p>
+                <p className="app-author">作者：{app.userId?.username || '匿名同学'}</p>
                 {app.description && (
                   <p className="app-description">{app.description}</p>
                 )}
                 <div className="app-stats">
                   <span className="likes-count">❤️ {app.likes || 0}</span>
                   <span className="favorite-date">
-                    收藏于 {new Date(app.favoritedAt).toLocaleDateString()}
+                    💫 收藏于 {new Date(app.favoritedAt).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="app-actions">
@@ -106,15 +106,15 @@ function Favorites() {
                     href={app.url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="button-primary"
+                    className="auth-button"
                   >
-                    访问应用
+                    🌟 查看作品
                   </a>
                   <button 
                     onClick={() => handleUnfavorite(app._id)}
-                    className="button-secondary"
+                    className="action-button delete"
                   >
-                    取消收藏
+                    💔 取消收藏
                   </button>
                 </div>
               </div>

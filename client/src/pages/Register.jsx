@@ -24,7 +24,15 @@ function Register({ setIsLoggedIn }) {
       const res = await axios.post('/api/register', form);
       // 注册成功后保存token并更新登录状态
       localStorage.setItem('token', res.data.token);
-      setIsLoggedIn(true);
+      
+      // 解析token获取用户信息
+      try {
+        const payload = JSON.parse(atob(res.data.token.split('.')[1]));
+        setIsLoggedIn({ username: payload.username });
+      } catch (e) {
+        setIsLoggedIn({ username: form.username || '同学' });
+      }
+      
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || '注册失败');
@@ -37,8 +45,8 @@ function Register({ setIsLoggedIn }) {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h2>创建账户</h2>
-          <p>加入我们的开发者社区</p>
+          <h2>加入Bee Store大家庭！🎨</h2>
+          <p>创建账户，开始分享你的创意作品，与同龄人一起成长</p>
         </div>
         
         <form onSubmit={handleSubmit} className="auth-form">
@@ -47,7 +55,7 @@ function Register({ setIsLoggedIn }) {
             <input 
               id="username"
               name="username" 
-              placeholder="请输入用户名" 
+              placeholder="给自己起个酷炫的昵称吧" 
               value={form.username} 
               onChange={handleChange} 
               required 
@@ -60,7 +68,7 @@ function Register({ setIsLoggedIn }) {
               id="email"
               name="email" 
               type="email" 
-              placeholder="请输入邮箱" 
+              placeholder="请输入常用邮箱地址" 
               value={form.email} 
               onChange={handleChange} 
               required 
@@ -73,7 +81,7 @@ function Register({ setIsLoggedIn }) {
               id="password"
               name="password" 
               type="password" 
-              placeholder="请输入密码" 
+              placeholder="设置一个安全的密码" 
               value={form.password} 
               onChange={handleChange} 
               required 
@@ -81,7 +89,7 @@ function Register({ setIsLoggedIn }) {
           </div>
           
           <button type="submit" className="auth-button" disabled={loading}>
-            {loading ? '注册中...' : '注册'}
+            {loading ? '注册中...' : '开启我的创作之旅'}
           </button>
           
           {error && <div className="error-message">{error}</div>}

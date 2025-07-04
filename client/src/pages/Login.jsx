@@ -24,7 +24,15 @@ function Login({ setIsLoggedIn }) {
       const res = await axios.post('/api/login', form);
       // 登录成功后保存token并更新登录状态
       localStorage.setItem('token', res.data.token);
-      setIsLoggedIn(true);
+      
+      // 解析token获取用户信息
+      try {
+        const payload = JSON.parse(atob(res.data.token.split('.')[1]));
+        setIsLoggedIn({ username: payload.username });
+      } catch (e) {
+        setIsLoggedIn({ username: '同学' });
+      }
+      
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || '登录失败');
@@ -37,8 +45,8 @@ function Login({ setIsLoggedIn }) {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h2>欢迎回来</h2>
-          <p>登录您的账户</p>
+          <h2>欢迎回到Bee Store！🐝</h2>
+          <p>登录你的账户，继续展示你的创意作品</p>
         </div>
         
         <form onSubmit={handleSubmit} className="auth-form">
@@ -69,14 +77,14 @@ function Login({ setIsLoggedIn }) {
           </div>
           
           <button type="submit" className="auth-button" disabled={loading}>
-            {loading ? '登录中...' : '登录'}
+            {loading ? '登录中...' : '开始展示你的才华'}
           </button>
           
           {error && <div className="error-message">{error}</div>}
         </form>
         
         <div className="auth-footer">
-          <p>还没有账号？<a href="/register" className="auth-link">立即注册</a></p>
+          <p>还没有账号？<a href="/register" className="auth-link">立即加入我们</a></p>
         </div>
       </div>
     </div>

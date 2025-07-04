@@ -10,7 +10,7 @@ import Favorites from './pages/Favorites';
 import './App.css';
 
 // 导航栏组件
-function Navbar({ isLoggedIn, onLogout }) {
+function Navbar({ isLoggedIn, onLogout, username }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -25,8 +25,8 @@ function Navbar({ isLoggedIn, onLogout }) {
     <nav className="navbar">
       <div className="nav-brand">
         <a href="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span className="nav-logo">🚀</span>
-          <span className="nav-title">WebDeploy</span>
+          <span className="nav-logo">🐝</span>
+          <span className="nav-title">Bee Store</span>
         </a>
       </div>
       
@@ -48,9 +48,14 @@ function Navbar({ isLoggedIn, onLogout }) {
         <a href="/" className="nav-link" onClick={closeMobileMenu}>首页</a>
         {isLoggedIn ? (
           <>
-            <a href="/dashboard" className="nav-link" onClick={closeMobileMenu}>我的应用</a>
-            <a href="/publish" className="nav-link" onClick={closeMobileMenu}>发布应用</a>
+            <a href="/dashboard" className="nav-link" onClick={closeMobileMenu}>我的作品</a>
+            <a href="/publish" className="nav-link" onClick={closeMobileMenu}>发布作品</a>
             <a href="/favorites" className="nav-link" onClick={closeMobileMenu}>我的收藏</a>
+            {username && (
+              <div className="user-info">
+                <span className="username">👋 {username}</span>
+              </div>
+            )}
             <button onClick={() => { onLogout(); closeMobileMenu(); }} className="nav-link logout-btn">退出</button>
           </>
         ) : (
@@ -69,20 +74,20 @@ function Navbar({ isLoggedIn, onLogout }) {
   );
 }
 
-// 首页组件 - 显示所有已发布的应用
+// 首页组件 - 显示所有已发布的作品
 function HomePage() {
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentUserId, setCurrentUserId] = useState(null);
   const [activeTab, setActiveTab] = useState('trending'); // 'trending' 或 'daily'
-  const [selectedApp, setSelectedApp] = useState(null); // 选中的应用（用于查看评论）
+  const [selectedApp, setSelectedApp] = useState(null); // 选中的作品（用于查看评论）
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState('');
 
   const fetchApps = (category = 'trending') => {
-    console.log(`开始获取应用数据... 类别: ${category}`);
+    console.log(`开始获取作品数据... 类别: ${category}`);
     setLoading(true);
     setError('');
     
@@ -105,18 +110,18 @@ function HomePage() {
     
     axios.get('/api/apps/published', { params })
       .then(res => {
-        console.log('获取到的应用数据:', res.data);
+        console.log('获取到的作品数据:', res.data);
         setApps(res.data);
         setLoading(false);
       })
       .catch(err => {
-        console.error('获取应用失败:', err);
-        setError('获取应用失败: ' + (err.response?.data?.message || err.message));
+        console.error('获取作品失败:', err);
+        setError('获取作品失败: ' + (err.response?.data?.message || err.message));
         setLoading(false);
       });
   };
 
-  // 获取应用评论
+  // 获取作品评论
   const fetchComments = async (appId) => {
     setLoadingComments(true);
     try {
@@ -200,16 +205,13 @@ function HomePage() {
   // 切换标签页
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    setSelectedApp(null); // 关闭评论面板
   };
 
-  // 查看应用详情和评论
   const handleViewComments = (app) => {
     setSelectedApp(app);
     fetchComments(app._id);
   };
 
-  // 处理点赞
   const handleLike = async (appId) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -218,27 +220,28 @@ function HomePage() {
     }
 
     try {
-      const response = await axios.post(`/api/apps/${appId}/like`, {}, {
+      await axios.post(`/api/apps/${appId}/like`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // 更新应用列表中的点赞状态
-      setApps(apps.map(app => 
-        app._id === appId 
-          ? { 
-              ...app, 
-              likes: response.data.likes,
-              isLikedByCurrentUser: response.data.isLiked
-            }
-          : app
-      ));
+      // 更新本地状态
+      setApps(apps.map(app => {
+        if (app._id === appId) {
+          const wasLiked = app.isLikedByCurrentUser;
+          return {
+            ...app,
+            likes: wasLiked ? app.likes - 1 : app.likes + 1,
+            isLikedByCurrentUser: !wasLiked
+          };
+        }
+        return app;
+      }));
     } catch (err) {
       console.error('点赞失败:', err);
-      alert('点赞失败');
+      alert('操作失败');
     }
   };
 
-  // 处理收藏
   const handleFavorite = async (appId) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -247,22 +250,23 @@ function HomePage() {
     }
 
     try {
-      const response = await axios.post(`/api/apps/${appId}/favorite`, {}, {
+      await axios.post(`/api/apps/${appId}/favorite`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // 更新应用列表中的收藏状态
-      setApps(apps.map(app => 
-        app._id === appId 
-          ? { 
-              ...app, 
-              isFavoriteByCurrentUser: response.data.isFavorite
-            }
-          : app
-      ));
+      // 更新本地状态
+      setApps(apps.map(app => {
+        if (app._id === appId) {
+          return {
+            ...app,
+            isFavoriteByCurrentUser: !app.isFavoriteByCurrentUser
+          };
+        }
+        return app;
+      }));
     } catch (err) {
       console.error('收藏失败:', err);
-      alert('收藏失败');
+      alert('操作失败');
     }
   };
 
@@ -270,7 +274,7 @@ function HomePage() {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
-        <p>加载中...</p>
+        <p>正在加载精彩作品...</p>
       </div>
     );
   }
@@ -278,34 +282,33 @@ function HomePage() {
   return (
     <div className="home-container">
       <div className="hero-section">
-        <h1 className="hero-title">发现优秀的网站应用</h1>
-        <p className="hero-subtitle">探索开发者们分享的精彩项目</p>
-        
-        {/* 分类标签页 */}
-        <div className="category-tabs">
-          <button 
-            className={`tab-button ${activeTab === 'trending' ? 'active' : ''}`}
-            onClick={() => handleTabChange('trending')}
-          >
-            🔥 点赞排行
-          </button>
-          <button 
-            className={`tab-button ${activeTab === 'daily' ? 'active' : ''}`}
-            onClick={() => handleTabChange('daily')}
-          >
-            🎲 每日推荐
-          </button>
-        </div>
+        <h1 className="hero-title">🐝 发现同龄人的精彩作品</h1>
+        <p className="hero-subtitle">在Bee Store，高中生们分享自己的创意项目，互相学习，共同成长</p>
       </div>
       
+      <div className="category-tabs">
+        <button 
+          className={`tab-button ${activeTab === 'trending' ? 'active' : ''}`}
+          onClick={() => handleTabChange('trending')}
+        >
+          🔥 热门作品
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'daily' ? 'active' : ''}`}
+          onClick={() => handleTabChange('daily')}
+        >
+          ⭐ 今日推荐
+        </button>
+      </div>
+
       {error && <div className="error-message">{error}</div>}
-      
+
       <div className="apps-grid">
         {apps.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📱</div>
-            <h3>暂无应用</h3>
-            <p>成为第一个发布应用的用户吧！</p>
+            <div className="empty-icon">🎨</div>
+            <h3>还没有作品</h3>
+            <p>成为第一个分享作品的同学吧！</p>
           </div>
         ) : (
           apps.map(app => (
@@ -321,7 +324,7 @@ function HomePage() {
               </div>
               <div className="app-info">
                 <h3 className="app-title">{app.title}</h3>
-                <p className="app-author">by {app.userId?.username || '未知用户'}</p>
+                <p className="app-author">作者：{app.userId?.username || '匿名同学'}</p>
                 {app.description && (
                   <p className="app-description">{app.description}</p>
                 )}
@@ -333,7 +336,7 @@ function HomePage() {
                   {(() => {
                     // 优先显示网页真实更新时间，其次显示系统更新时间
                     const displayTime = app.webpageUpdatedAt || app.updatedAt;
-                    const timeType = app.webpageUpdatedAt ? '网页更新' : '系统更新';
+                    const timeType = app.webpageUpdatedAt ? '作品更新' : '系统更新';
                     const showUpdate = displayTime && displayTime !== app.createdAt;
                     
                     return showUpdate && (
@@ -351,7 +354,7 @@ function HomePage() {
                     rel="noopener noreferrer"
                     className="app-link"
                   >
-                    访问应用 →
+                    查看作品 →
                   </a>
                   
                   <button 
@@ -407,7 +410,7 @@ function HomePage() {
               <textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="写下你的评论..."
+                placeholder="写下你的想法，给作者一些鼓励吧..."
                 maxLength={500}
                 rows={3}
               />
@@ -434,7 +437,7 @@ function HomePage() {
               comments.map(comment => (
                 <div key={comment._id} className="comment-item">
                   <div className="comment-header">
-                    <span className="comment-author">{comment.userId?.username || '匿名用户'}</span>
+                    <span className="comment-author">{comment.userId?.username || '匿名同学'}</span>
                     <div className="comment-meta">
                       <span className="comment-time">
                         {new Date(comment.createdAt).toLocaleString()}
@@ -464,18 +467,34 @@ function HomePage() {
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [username, setUsername] = useState('');
 
   useEffect(() => {
-    // 检查登录状态
+    // 检查登录状态并获取用户名
     const token = localStorage.getItem('token');
-    setIsLoggedIn(!!token);
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setIsLoggedIn(true);
+        setUsername(payload.username || '同学');
+      } catch (e) {
+        console.error('解析token失败:', e);
+        setIsLoggedIn(false);
+      }
+    }
     setIsLoaded(true);
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsLoggedIn(false);
+    setUsername('');
     window.location.href = '/';
+  };
+
+  const handleLogin = (userInfo) => {
+    setIsLoggedIn(true);
+    setUsername(userInfo.username || '同学');
   };
 
   if (!isLoaded) {
@@ -484,12 +503,12 @@ function App() {
 
   return (
     <div className="app-container">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} username={username} />
       <main className="main-content">
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/register" element={<Register setIsLoggedIn={setIsLoggedIn} />} />
-          <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
+          <Route path="/register" element={<Register setIsLoggedIn={handleLogin} />} />
+          <Route path="/login" element={<Login setIsLoggedIn={handleLogin} />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/publish" element={<PublishApp />} />
           <Route path="/apps" element={<PublicApps />} />
