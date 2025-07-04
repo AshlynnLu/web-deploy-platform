@@ -1449,11 +1449,19 @@ body {
     left:var(--space-md);
     top:50%;
     transform:translateY(-50%);
-    z-index:var(--z-fixed);
+    z-index: var(--z-modal); /* 保证最上层 */
     background:none;
   }
   .hamburger span {background:var(--primary-dark);}
-  .interaction-buttons>*{min-width:60px;justify-content:center;}
+  .interaction-buttons > a,
+  .interaction-buttons > button{
+    min-width:72px;
+    min-height:40px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex:1 1 72px;
+  }
 }
 
 /* 手机设备 (480px以下) */
