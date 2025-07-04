@@ -1894,3 +1894,41 @@ body {
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
+
+/* ==================== 自定义移动端优化（2025-07-04） ==================== */
+@media (max-width: 768px) {
+  /* 1. 统一侧边菜单按钮（首页 / 登录 / 注册 / 退出）宽度与对齐 */
+  .nav-links .nav-link,
+  .nav-links .register-btn,
+  .nav-links .logout-btn {
+    width: 90%;              /* 固定相同宽度 */
+    margin: 0 auto var(--space-md);
+    text-align: center;      /* 文字居中 */
+    border-bottom: none;     /* 去掉底部分割线，视觉一致 */
+    display: block;
+  }
+
+  /* 2. 调整注册/退出按钮填充，避免过大 */
+  .nav-links .register-btn,
+  .nav-links .logout-btn {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  /* 3. 首页分类 Tab 按钮同宽并居中 */
+  .category-tabs {
+    flex-direction: column;
+    align-items: center;
+  }
+  .category-tabs .tab-button {
+    width: 260px;            /* 移动端固定宽度，更易点击 */
+    max-width: 90vw;
+  }
+
+  /* 4. 页面内容顶部留白，避免被固定导航栏遮挡，并兼顾安全区域 */
+  .home-container,
+  .main-content,
+  .auth-container,
+  .publish-app-container {
+    padding-top: calc(100px + env(safe-area-inset-top, 0px));
+  }
+}
