@@ -1135,7 +1135,7 @@ body {
   padding: var(--space-sm);
   border-radius: var(--radius-sm);
   transition: var(--transition-fast);
-  z-index: calc(var(--z-sticky) + 1);
+  z-index: var(--z-tooltip); /* 提升层级，确保按钮始终位于最上层 */
 }
 
 .mobile-menu-btn:hover {
@@ -1147,7 +1147,8 @@ body {
   flex-direction: column;
   width: 24px;
   height: 18px;
-  position: relative;
+  position: relative; /* 保证能应用 z-index */
+  z-index: var(--z-tooltip); /* 提升层级，确保高于导航栏 */
 }
 
 .hamburger span {
