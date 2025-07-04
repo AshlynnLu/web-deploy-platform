@@ -92,6 +92,7 @@
   --z-modal: 1050;
   --z-popover: 1060;
   --z-tooltip: 1070;
+  --nav-height: 60px;
 }
 
 /* ==================== 基础样式 ==================== */
@@ -1837,4 +1838,17 @@ body {
 .view-btn:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
+}
+
+/* 提升汉堡按钮图层 */
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    z-index: 9999;
+  }
+  .main-content,
+  .home-container,
+  .auth-container,
+  .publish-app-container {
+    padding-top: calc(var(--nav-height) + var(--space-lg));
+  }
 }
