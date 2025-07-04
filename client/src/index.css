@@ -13,12 +13,12 @@
 /* ==================== CSS Variables ==================== */
 :root {
   /* 颜色系统 */
-  --primary-color: #667eea;
-  --primary-dark: #5a67d8;
-  --primary-light: #a5b4fc;
-  --secondary-color: #764ba2;
-  --accent-color: #ff6b6b;
-  --accent-dark: #ee5a24;
+  --primary-color: #FFA500;
+  --primary-dark: #FF8C00;
+  --primary-light: #FFB84D;
+  --secondary-color: #FF9500;
+  --accent-color: #FFA500;
+  --accent-dark: #FF8C00;
   
   /* 中性色 */
   --white: #ffffff;
@@ -113,7 +113,7 @@ body {
   font-size: var(--font-size-base);
   line-height: 1.6;
   color: var(--gray-900);
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: linear-gradient(135deg, #FFA500 0%, #FFB84D 50%, #FFFFFF 100%);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -379,13 +379,17 @@ body {
 .form-textarea {
   width: 100%;
   padding: var(--space-md);
-  border: 2px solid var(--gray-300);
+  border: 2px solid rgba(255, 165, 0, 0.2);
   border-radius: var(--radius-lg);
   font-size: var(--font-size-base);
   font-family: inherit;
   transition: var(--transition-fast);
   background: var(--white);
   min-height: 44px;
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
 .form-input:focus,
@@ -393,7 +397,33 @@ body {
 .form-textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.1);
+}
+
+/* 自定义选择框样式 */
+.form-select {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23666' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-md) center;
+  background-size: 12px;
+  padding-right: calc(var(--space-md) * 2.5);
+  cursor: pointer;
+}
+
+.form-select:focus {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23FFA500' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E");
+}
+
+.form-select option {
+  padding: var(--space-sm);
+  background: var(--white);
+  color: var(--gray-700);
+}
+
+.form-select option:checked {
+  background: rgba(255, 165, 0, 0.1);
+  color: var(--primary-color);
+  font-weight: 500;
 }
 
 .form-textarea {

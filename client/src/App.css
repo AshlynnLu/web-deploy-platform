@@ -13,12 +13,12 @@
 /* ==================== CSS Variables ==================== */
 :root {
   /* 颜色系统 */
-  --primary-color: #667eea;
-  --primary-dark: #5a67d8;
-  --primary-light: #a5b4fc;
-  --secondary-color: #764ba2;
-  --accent-color: #E67E22;
-  --accent-dark: #D35400;
+  --primary-color: #FFA500;
+  --primary-dark: #FF8C00;
+  --primary-light: #FFB84D;
+  --secondary-color: #FF9500;
+  --accent-color: #FFA500;
+  --accent-dark: #FF8C00;
   
   /* 中性色 */
   --white: #ffffff;
@@ -106,7 +106,7 @@ body {
   font-size: var(--font-size-base);
   line-height: 1.6;
   color: var(--gray-900);
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: linear-gradient(135deg, #FFA500 0%, #FFB84D 50%, #FFFFFF 100%);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -193,7 +193,37 @@ body {
   transform: translateY(-1px);
 }
 
-/* ==================== 按钮系统 ==================== */
+/* ==================== 用户名显示 ==================== */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--white);
+  font-weight: 500;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(45deg, var(--accent-color), var(--accent-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.username {
+  font-size: var(--font-size-sm);
+  opacity: 0.95;
+}
 .btn,
 .button {
   display: inline-flex;
@@ -568,25 +598,35 @@ body {
   font-size: var(--font-size-sm);
 }
 
+/* ==================== 表单组件增强 ==================== */
+.form-group label {
+  font-weight: 600;
+  color: var(--gray-700);
+  font-size: var(--font-size-sm);
+}
+
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-select {
   width: 100%;
   padding: var(--space-md);
-  border: 1px solid rgba(230, 126, 34, 0.3);
+  border: 2px solid rgba(255, 165, 0, 0.2);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--white);
   color: var(--gray-700);
   font-size: var(--font-size-base);
   font-family: inherit;
   transition: var(--transition-fast);
   min-height: 44px;
+  position: relative;
 }
 
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-select:focus {
   outline: none;
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.2);
+  box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.1);
 }
 
 .form-group input::placeholder,
@@ -598,6 +638,70 @@ body {
   resize: vertical;
   min-height: 100px;
   line-height: 1.6;
+}
+
+/* 自定义选择框样式 */
+.custom-select {
+  position: relative;
+  display: block;
+}
+
+.custom-select::after {
+  content: '▼';
+  position: absolute;
+  top: 50%;
+  right: var(--space-md);
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--gray-500);
+  font-size: var(--font-size-sm);
+  transition: var(--transition-fast);
+}
+
+.custom-select:focus-within::after {
+  color: var(--accent-color);
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.custom-select select {
+  width: 100%;
+  padding: var(--space-md);
+  padding-right: calc(var(--space-md) * 2.5);
+  border: 2px solid rgba(255, 165, 0, 0.2);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--gray-700);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: var(--transition-fast);
+  min-height: 44px;
+}
+
+.custom-select select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.1);
+}
+
+.custom-select select option {
+  padding: var(--space-sm);
+  background: var(--white);
+  color: var(--gray-700);
+  border: none;
+}
+
+.custom-select select option:checked {
+  background: rgba(255, 165, 0, 0.1);
+  color: var(--accent-color);
+  font-weight: 500;
+}
+
+.custom-select select option:hover {
+  background: rgba(255, 165, 0, 0.05);
 }
 
 .auth-footer {
@@ -620,19 +724,20 @@ body {
 
 /* ==================== 发布应用页面 ==================== */
 .publish-app-container {
-  max-width: 600px;
+  max-width: 95vw;
   margin: 0 auto;
-  padding: var(--space-xl);
+  padding: var(--space-md);
   width: 100%;
 }
 
 .publish-app-card {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(230, 126, 34, 0.2);
+  border: 1px solid rgba(255, 165, 0, 0.2);
   border-radius: var(--radius-2xl);
-  padding: var(--space-2xl);
+  padding: var(--space-xl);
   box-shadow: var(--shadow-xl);
+  width: 100%;
 }
 
 .description-header {
@@ -1127,11 +1232,12 @@ body {
   }
   
   .auth-container {
-    padding-left: var(--space-3xl);
+    padding: var(--space-xl);
   }
   
   .auth-card {
-    max-width: 700px;
+    max-width: 800px;
+    padding: var(--space-3xl);
   }
   
   .apps-grid {
@@ -1149,11 +1255,11 @@ body {
   }
   
   .publish-app-container {
-    max-width: 700px;
+    max-width: 900px;
   }
   
   .publish-app-card {
-    padding: var(--space-2xl);
+    padding: var(--space-3xl);
   }
 }
 
@@ -1165,11 +1271,12 @@ body {
   }
   
   .auth-container {
-    padding-left: var(--space-xl);
+    padding: var(--space-lg);
   }
   
   .auth-card {
-    max-width: 600px;
+    max-width: 700px;
+    padding: var(--space-2xl);
   }
   
   .apps-grid {
@@ -1191,9 +1298,14 @@ body {
   }
   
   .publish-app-container {
-    max-width: 600px;
+    max-width: 750px;
     padding: var(--space-lg);
   }
+  
+  .publish-app-card {
+    padding: var(--space-2xl);
+  }
+}
 }
 
 /* 平板设备 (768px以下) */
@@ -1254,8 +1366,8 @@ body {
   .auth-card {
     padding: var(--space-xl);
     margin: var(--space-md) auto;
-    width: calc(100% - var(--space-xl));
-    max-width: 400px;
+    width: calc(100% - var(--space-lg));
+    max-width: 500px;
   }
   
   .publish-app-container {
@@ -1390,7 +1502,7 @@ body {
     padding: var(--space-lg);
     margin: var(--space-sm) auto;
     width: calc(100% - var(--space-md));
-    max-width: 350px;
+    max-width: 450px;
   }
   
   .publish-app-container {
@@ -1502,7 +1614,7 @@ body {
   .auth-card {
     padding: var(--space-md);
     margin: var(--space-xs) auto;
-    max-width: 300px;
+    max-width: 350px;
   }
   
   .publish-app-card {
