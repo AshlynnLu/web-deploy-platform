@@ -228,7 +228,7 @@ function HomePage() {
       });
 
       // 更新本地状态
-      setApps(apps.map(app => {
+      setApps(prevApps => prevApps.map(app => {
         if (app._id === appId) {
           const wasLiked = app.isLikedByCurrentUser;
           return {
@@ -258,7 +258,7 @@ function HomePage() {
       });
 
       // 更新本地状态
-      setApps(apps.map(app => {
+      setApps(prevApps => prevApps.map(app => {
         if (app._id === appId) {
           return {
             ...app,
