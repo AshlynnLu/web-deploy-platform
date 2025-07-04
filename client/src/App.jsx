@@ -347,7 +347,7 @@ function HomePage() {
                       className="view-btn"
                       title="查看作品"
                     >
-                      🔗 查看
+                      🔗
                     </a>
                     <button 
                       onClick={() => handleLike(app._id)}
@@ -368,7 +368,7 @@ function HomePage() {
                       className="like-btn"
                       title="查看评论"
                     >
-                      💬 评论
+                      💬
                     </button>
                   </div>
                 </div>

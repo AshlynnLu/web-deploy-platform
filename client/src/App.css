@@ -140,8 +140,10 @@ body {
   border-bottom: 2px solid rgba(255, 140, 0, 0.2);
   padding: var(--space-md) 0;
   position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
+  top:0;
+  left:0;
+  width:100%;
+  z-index: var(--z-fixed);
   transition: var(--transition-normal);
   box-shadow: var(--shadow-md);
 }
@@ -1149,7 +1151,7 @@ body {
 
 .hamburger span {
   width: 24px;
-  height: 2px;
+  height: 3px; /* 加粗 */
   background: var(--primary-dark);
   display: block;
   margin: 5px 0;
@@ -1308,6 +1310,7 @@ body {
     flex-direction: column;
     gap: var(--space-md);
     min-height: auto;
+    position:fixed;
   }
   
   .nav-brand {
